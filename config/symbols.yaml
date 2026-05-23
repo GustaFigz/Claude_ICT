@@ -1,0 +1,31 @@
+# Trading Symbols Configuration
+# Only symbols listed here will be analyzed
+
+symbols:
+  EURUSD:
+    enabled: true
+    broker_symbol: "EURUSD"          # Exact symbol in MT5
+    oanda_symbol: "EUR_USD"          # OANDA format
+    correlation_pair: "EURUSD"       # For DXY correlation
+    timeframes: [MN, W1, D1, H4, H1, M15, M5, M1]
+    min_price_history: 100           # Candles needed for context
+
+  GBPUSD:
+    enabled: false
+    broker_symbol: "GBPUSD"
+    oanda_symbol: "GBP_USD"
+    correlation_pair: "GBPUSD"
+    timeframes: [MN, W1, D1, H4, H1, M15, M5, M1]
+    min_price_history: 100
+
+  USDJPY:
+    enabled: false
+    broker_symbol: "USDJPY"
+    oanda_symbol: "USD_JPY"
+    correlation_pair: "USDJPY"
+    timeframes: [MN, W1, D1, H4, H1, M15, M5, M1]
+    min_price_history: 100
+
+# Add more symbols as needed
+# Phase 0: Choose 1-3 symbols to focus on initially
+# Update as you add more to your strategy

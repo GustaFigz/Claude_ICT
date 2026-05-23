@@ -1,0 +1,50 @@
+# Account Configuration — FTMO Challenge
+# Copy this to account.yaml and fill in your values
+
+account:
+  # Challenge Type
+  challenge_type: "1-step"  # or "2-step"
+
+  # Capital and Limits
+  initial_capital: 100000
+  account_currency: "USD"
+
+  # FTMO Rules (adjust per actual account)
+  daily_loss_limit_pct: 5.0        # Official limit
+  daily_buffer_pct: 3.5             # Conservative buffer (3.5%, stop if reached)
+
+  max_total_loss_pct: 10.0          # Official limit
+  max_total_buffer_pct: 8.0         # Conservative buffer
+
+  profit_target_pct: 10.0           # Completion target
+  minimum_trading_days: 10
+
+  # Risk per Trade
+  risk_per_trade_pct: 0.50          # Default: 0.5% of account per trade
+  max_risk_per_trade_pct: 1.0       # Absolute max
+  min_rr_ratio: 2.0                 # Minimum Reward:Risk
+
+  # Session Rules
+  max_trades_per_day: 3
+  max_consecutive_losses: 2         # Stop after N losses in day
+
+  # Timezone
+  timezone: "America/New_York"      # NY time (trading hours)
+  ft_timezone: "Europe/Lisbon"      # Your timezone (reference)
+
+# Risk Management Overrides per Symbol
+# (If not present, defaults above apply)
+risk_overrides: {}
+  # EURUSD:
+  #   risk_per_trade_pct: 0.25
+  #   max_trades_per_day: 2
+
+# Account Connectivity
+connectivity:
+  primary_broker: "mt5"             # MT5 account
+  secondary_data_source: "oanda"    # For validation
+  calendar_source: "forexfactory"   # Economic calendar
+
+# Demo Mode (Use before FTMO real)
+demo_mode: true
+shadow_mode: false
