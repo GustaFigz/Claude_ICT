@@ -26,7 +26,9 @@ O CLI corre end-to-end: `python -m cli.main analyze EURUSD --now 2026-05-26T14:3
 - `data_pipeline/market_clock.py` — timezones/Kill Zones + rollover FTMO (zoneinfo, DST).
 - `data_pipeline/fixtures.py` — candles sintéticas (corre sem MT5/OANDA).
 - `data_pipeline/collector.py` — orquestra o motor → `AnalysisContext`.
-- `data_pipeline/{mt5_client,oanda_client,news_client}.py` — clientes live (a LIGAR depois).
+- `data_pipeline/{mt5_client,oanda_client,news_client}.py` — clientes live (a LIGAR depois);
+  `news_client` já normaliza data/hora FF → UTC e calcula blackout (testado offline).
+- `data_pipeline/quality.py` — freshness + divergência MT5×OANDA (testado; falta LIGAR ao collector live).
 - `data_pipeline/audit.py` — regista cada análise em `logs/analyses.jsonl`.
 - `ict_engine/{swings,structure,liquidity,setups,risk,validator}.py` — cálculo ICT + FTMO + decisão.
 - `cli/main.py` — comando `analyze`; escreve `context/<run_id>.json` e log de auditoria.
@@ -59,10 +61,11 @@ Fases 8–10 (shadow → demo → FTMO real) — **operacionais, dependem de dad
   OANDA; mudar `account.yaml: data_mode` para `mt5`/`oanda`; ligar `collector` aos clientes.
 - [ ] **NAS100: confirmar `broker_symbol` e `pip_value_per_lot`** contra o broker real (o sizing
   depende disto; em `config/symbols.yaml` está como placeholder a VERIFICAR).
-- [ ] **Live data quality:** implementar freshness (<5 min) e divergência MT5×OANDA no collector
-  (hoje o `DataQuality` é preenchido como fresh em modo fixtures).
-- [ ] **ForexFactory:** normalizar timezone do feed para UTC antes do blackout; juntar 2ª fonte
-  (risco de fonte única, ANALISE_CRITICA §3.5).
+- [ ] **Ligar data quality + news ao modo live:** `quality.build_data_quality` e
+  `news_client.build_news_state` existem e estão testados — falta chamá-los no `collector` quando
+  `data_mode` for `mt5`/`oanda` (hoje em fixtures o `DataQuality` vem fresh e news vazio).
+- [ ] **ForexFactory 2ª fonte** — feed já normalizado para UTC; falta fonte redundante/checklist
+  manual (risco de fonte única, ANALISE_CRITICA §3.5).
 - [ ] **Afinar setup/RR:** com dados sintéticos o alvo fica perto → R:R baixo (bloqueia). Refinar a
   escolha de alvo/stop do Silver Bullet com dados reais.
 - [ ] **FVG por ATR:** hoje `min_pips=0`; aplicar limiar ~20% ATR (ict_definitions).

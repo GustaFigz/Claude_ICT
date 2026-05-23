@@ -9,12 +9,15 @@ from __future__ import annotations
 
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 import requests
 
 from .schemas import NewsEvent, NewsState
 
 FF_URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.xml"
+# The FF XML mirror publishes times in US Eastern by default. Override if your feed differs.
+FF_SOURCE_TZ = "America/New_York"
 
 
 def fetch_calendar(url: str = FF_URL, timeout: int = 10) -> str:
@@ -35,6 +38,29 @@ def parse_calendar(xml_text: str) -> list[dict]:
             "impact": (ev.findtext("impact") or "").strip(),
         })
     return events
+
+
+def parse_ff_datetime(date_str: str, time_str: str, src_tz: str = FF_SOURCE_TZ) -> datetime | None:
+    """FF date 'MM-DD-YYYY' + time '8:30am' -> UTC datetime. None for All Day/Tentative/empty."""
+    t = time_str.strip().lower()
+    if not t or t in {"all day", "tentative", "day 1", "day 2"}:
+        return None
+    try:
+        local = datetime.strptime(f"{date_str} {t}", "%m-%d-%Y %I:%M%p")
+    except ValueError:
+        return None
+    return local.replace(tzinfo=ZoneInfo(src_tz)).astimezone(timezone.utc)
+
+
+def events_from_raw(raw: list[dict], src_tz: str = FF_SOURCE_TZ) -> list[NewsEvent]:
+    out: list[NewsEvent] = []
+    for r in raw:
+        dt = parse_ff_datetime(r.get("date", ""), r.get("time", ""), src_tz)
+        if dt is None:
+            continue
+        out.append(NewsEvent(time_utc=dt, currency=r.get("country", ""),
+                             impact=r.get("impact", ""), title=r.get("title", "")))
+    return out
 
 
 def build_news_state(
