@@ -1,50 +1,52 @@
 # Account Configuration — FTMO Challenge
-# Copy this to account.yaml and fill in your values
+# Copy this to account.yaml and fill in your values (account.yaml is gitignored).
+# Numbers below reflect FTMO 2026 rules (verified 2026-05). Edit per your real account.
 
 account:
-  # Challenge Type
-  challenge_type: "1-step"  # or "2-step"
+  # Challenge Type: "2-step" (standard) or "1-step"
+  # 2-step: 5% daily / 10% total (STATIC), targets 10% (phase1) then 5% (phase2), min 4 days/phase
+  # 1-step: 3% daily / 10% total (TRAILING), target 10%, min 4 days
+  challenge_type: "2-step"
 
-  # Capital and Limits
-  initial_capital: 100000
+  # Capital and currency
+  initial_capital: 10000
   account_currency: "USD"
 
-  # FTMO Rules (adjust per actual account)
-  daily_loss_limit_pct: 5.0        # Official limit
-  daily_buffer_pct: 3.5             # Conservative buffer (3.5%, stop if reached)
+  # FTMO limits (official) and conservative internal buffers (when YOU stop)
+  daily_loss_limit_pct: 5.0      # official (2-step). 1-step = 3.0
+  daily_buffer_pct: 3.5          # stop trading for the day if reached
+  max_total_loss_pct: 10.0       # official
+  max_total_buffer_pct: 8.0      # pause system if reached
+  trailing_max_loss: false       # true only for 1-step (max loss trails equity high)
 
-  max_total_loss_pct: 10.0          # Official limit
-  max_total_buffer_pct: 8.0         # Conservative buffer
+  # Targets / days
+  profit_target_pct: 10.0        # phase 1 (2-step). phase 2 target = 5.0
+  minimum_trading_days: 4        # FTMO 2026: 4 days per phase (was 10)
 
-  profit_target_pct: 10.0           # Completion target
-  minimum_trading_days: 10
+  # Risk per trade
+  risk_per_trade_pct: 0.50       # default 0.5% of account per trade
+  max_risk_per_trade_pct: 1.0
+  min_rr_ratio: 2.0              # minimum reward:risk
 
-  # Risk per Trade
-  risk_per_trade_pct: 0.50          # Default: 0.5% of account per trade
-  max_risk_per_trade_pct: 1.0       # Absolute max
-  min_rr_ratio: 2.0                 # Minimum Reward:Risk
-
-  # Session Rules
+  # Session rules
   max_trades_per_day: 3
-  max_consecutive_losses: 2         # Stop after N losses in day
+  max_consecutive_losses: 2      # stop after N losing trades in a day
 
-  # Timezone
-  timezone: "America/New_York"      # NY time (trading hours)
-  ft_timezone: "Europe/Lisbon"      # Your timezone (reference)
+  # Timezones
+  timezone: "America/New_York"   # canonical trading time (Kill Zones)
+  ft_timezone: "Europe/Lisbon"   # your reference timezone
+  ftmo_rollover_tz: "Europe/Prague"  # CE(S)T — FTMO daily reset at 00:00
 
-# Risk Management Overrides per Symbol
-# (If not present, defaults above apply)
+# Per-symbol risk overrides (optional)
 risk_overrides: {}
-  # EURUSD:
-  #   risk_per_trade_pct: 0.25
-  #   max_trades_per_day: 2
 
-# Account Connectivity
+# Connectivity
 connectivity:
-  primary_broker: "mt5"             # MT5 account
-  secondary_data_source: "oanda"    # For validation
-  calendar_source: "forexfactory"   # Economic calendar
+  primary_broker: "mt5"          # decisive price/account source for FTMO
+  secondary_data_source: "oanda" # sanity check only
+  calendar_source: "forexfactory"
 
-# Demo Mode (Use before FTMO real)
+# Modes
 demo_mode: true
 shadow_mode: false
+data_mode: "fixtures"            # "fixtures" | "oanda" | "mt5" (current build: fixtures)

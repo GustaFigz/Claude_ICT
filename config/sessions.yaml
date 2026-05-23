@@ -1,0 +1,23 @@
+# Session / Kill Zone configuration.
+# Times are in the account 'timezone' (America/New_York). The market_clock module
+# converts candle UTC timestamps to this tz and handles DST automatically.
+# A "kill_zone" is the broad window; "silver_bullet" is the precise entry window inside it.
+
+sessions:
+  ny_am_silver_bullet:
+    label: "NY AM Silver Bullet"
+    kill_zone:   { start: "08:30", end: "11:00" }   # NY AM kill zone
+    entry_window: { start: "10:00", end: "11:00" }  # ICT Silver Bullet hour
+    model: "silver_bullet"
+
+  ny_pm_silver_bullet:
+    label: "NY PM Silver Bullet"
+    kill_zone:   { start: "13:30", end: "16:00" }
+    entry_window: { start: "14:00", end: "15:00" }
+    model: "silver_bullet"
+
+  london_open:
+    label: "London Open Kill Zone"
+    kill_zone:   { start: "02:00", end: "05:00" }
+    entry_window: { start: "03:00", end: "04:00" }
+    model: "silver_bullet"
