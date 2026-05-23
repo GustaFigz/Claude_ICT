@@ -18,14 +18,17 @@ inventar níveis nem ignorar bloqueios**. Execução manual.
 
 ## 2. Estado atual — CÓDIGO IMPLEMENTADO E TESTADO
 
-Motor determinístico construído e a correr **offline** (`data_mode=fixtures`). **25 testes passam.**
+Motor determinístico construído e a correr **offline** (`data_mode=fixtures`). **35 testes passam.**
 O CLI corre end-to-end: `python -m cli.main analyze EURUSD --now 2026-05-26T14:30 --trend up`.
+O caminho **live** (`collect_live`, por injeção de dependências) está implementado, testado com
+fakes e ligado ao CLI — basta meter credenciais e mudar `data_mode` para `mt5`/`oanda`.
 
 **Módulos:**
 - `data_pipeline/schemas.py` — contratos Pydantic; o JSON do Claude é um `AnalysisContext`.
 - `data_pipeline/market_clock.py` — timezones/Kill Zones + rollover FTMO (zoneinfo, DST).
 - `data_pipeline/fixtures.py` — candles sintéticas (corre sem MT5/OANDA).
-- `data_pipeline/collector.py` — orquestra o motor → `AnalysisContext`.
+- `data_pipeline/collector.py` — `build_context` (motor → `AnalysisContext`) + `collect_live`
+  (caminho live por injeção: liga quality+news; testado com fakes).
 - `data_pipeline/{mt5_client,oanda_client,news_client}.py` — clientes live (a LIGAR depois);
   `news_client` já normaliza data/hora FF → UTC e calcula blackout (testado offline).
 - `data_pipeline/quality.py` — freshness + divergência MT5×OANDA (testado; falta LIGAR ao collector live).
@@ -57,13 +60,11 @@ Fases 8–10 (shadow → demo → FTMO real) — **operacionais, dependem de dad
 
 ## 4. Pendente / questões em aberto
 
-- [ ] **Ligar dados live:** instalar terminal MT5 + `pip install MetaTrader5`; criar `.env` com chave
-  OANDA; mudar `account.yaml: data_mode` para `mt5`/`oanda`; ligar `collector` aos clientes.
-- [ ] **NAS100: confirmar `broker_symbol` e `pip_value_per_lot`** contra o broker real (o sizing
-  depende disto; em `config/symbols.yaml` está como placeholder a VERIFICAR).
-- [ ] **Ligar data quality + news ao modo live:** `quality.build_data_quality` e
-  `news_client.build_news_state` existem e estão testados — falta chamá-los no `collector` quando
-  `data_mode` for `mt5`/`oanda` (hoje em fixtures o `DataQuality` vem fresh e news vazio).
+- [ ] **Credenciais (só tu):** instalar terminal MT5 + `pip install MetaTrader5`; criar `.env` com
+  chave OANDA; copiar `account.example.yaml`→`account.yaml` e pôr `data_mode: mt5`. O código live já
+  está ligado (CLI `_run_live` + `collect_live`); falta só isto + validar JSON vs gráfico.
+- [ ] **NAS100: confirmar `broker_symbol` e `pip_value_per_lot`** contra o broker real — em
+  `config/symbols.yaml` está placeholder ($1/ponto) marcado VERIFICAR; o sizing depende disto.
 - [ ] **ForexFactory 2ª fonte** — feed já normalizado para UTC; falta fonte redundante/checklist
   manual (risco de fonte única, ANALISE_CRITICA §3.5).
 - [ ] **Afinar setup/RR:** com dados sintéticos o alvo fica perto → R:R baixo (bloqueia). Refinar a

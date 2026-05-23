@@ -16,7 +16,7 @@ import yaml
 
 from data_pipeline import fixtures
 from data_pipeline.audit import append_analysis
-from data_pipeline.collector import build_context
+from data_pipeline.collector import build_context, collect_live
 from data_pipeline.schemas import AccountSnapshot, DataQuality
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -46,6 +46,30 @@ def _fixture_candles(symbol: str, now_utc: datetime, trend: str) -> dict:
     return {tf: fixtures.generate_candles(tf, counts[tf], start, step, now_utc, trend) for tf in NEEDED_TF}
 
 
+def _run_live(symbol, symbol_cfg, account, sessions, data_mode, now_utc):
+    """Live data path. Requires MT5 terminal + OANDA key. Account state always from MT5 (FTMO)."""
+    from data_pipeline import mt5_client, news_client, oanda_client
+
+    if data_mode == "mt5":
+        get_candles = lambda tf, count: mt5_client.get_candles(symbol_cfg["broker_symbol"], tf, count)
+        get_secondary = lambda tf, count: oanda_client.get_candles(symbol_cfg["oanda_symbol"], tf, count)
+    elif data_mode == "oanda":
+        get_candles = lambda tf, count: oanda_client.get_candles(symbol_cfg["oanda_symbol"], tf, count)
+        get_secondary = None
+    else:
+        raise ValueError(f"unknown data_mode {data_mode}")
+
+    try:
+        events = news_client.events_from_raw(news_client.parse_calendar(news_client.fetch_calendar()))
+    except Exception as e:  # network/feed failure: proceed without news (validator stays conservative)
+        print(f"  [warn] calendar fetch failed: {e}")
+        events = None
+
+    return collect_live(symbol, symbol_cfg, account, sessions, get_candles,
+                        mt5_client.get_account_snapshot, source=data_mode, now_utc=now_utc,
+                        get_secondary_candles=get_secondary, news_events=events)
+
+
 def cmd_analyze(args) -> int:
     account, symbols, sessions = _load_configs()
     symbol = args.symbol.upper()
@@ -57,15 +81,18 @@ def cmd_analyze(args) -> int:
     now_utc = (datetime.fromisoformat(args.now).replace(tzinfo=timezone.utc)
                if args.now else datetime.now(timezone.utc))
 
-    tf_candles = _fixture_candles(symbol, now_utc, args.trend)
-    snapshot = AccountSnapshot(
-        balance=float(account["initial_capital"]),
-        equity=float(account["initial_capital"]),
-        daily_pnl_pct=0.0, drawdown_pct=0.0,
-    )
-    dq = DataQuality(source="fixtures", fresh=True, age_seconds=0.0)
-
-    ctx = build_context(symbol, symbol_cfg, account, sessions, tf_candles, snapshot, dq, now_utc=now_utc)
+    data_mode = account.get("data_mode", "fixtures")
+    if data_mode == "fixtures":
+        tf_candles = _fixture_candles(symbol, now_utc, args.trend)
+        snapshot = AccountSnapshot(
+            balance=float(account["initial_capital"]),
+            equity=float(account["initial_capital"]),
+            daily_pnl_pct=0.0, drawdown_pct=0.0,
+        )
+        dq = DataQuality(source="fixtures", fresh=True, age_seconds=0.0)
+        ctx = build_context(symbol, symbol_cfg, account, sessions, tf_candles, snapshot, dq, now_utc=now_utc)
+    else:
+        ctx = _run_live(symbol, symbol_cfg, account, sessions, data_mode, now_utc)
 
     out_dir = ROOT / "context"
     out_dir.mkdir(exist_ok=True)

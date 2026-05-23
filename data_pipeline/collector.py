@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
+from typing import Callable
 
 from ict_engine import liquidity as liq
 from ict_engine import risk as risk_mod
@@ -15,14 +16,56 @@ from ict_engine import structure as struct
 from ict_engine.swings import detect_swings
 
 from . import market_clock
+from .news_client import build_news_state
+from .quality import build_data_quality
 from .schemas import (
     AccountSnapshot,
     AnalysisContext,
+    Candle,
     DataQuality,
     Liquidity,
+    NewsEvent,
     NewsState,
     Structure,
 )
+
+# Timeframes the engine consumes. Counts are per timeframe.
+ENGINE_TF = {"D1": 60, "H4": 60, "H1": 80, "M5": 80}
+
+
+def collect_live(
+    symbol: str,
+    symbol_cfg: dict,
+    account_cfg: dict,
+    sessions_cfg: dict,
+    get_candles: Callable[[str, int], list[Candle]],
+    get_snapshot: Callable[[], AccountSnapshot],
+    source: str,
+    now_utc: datetime | None = None,
+    get_secondary_candles: Callable[[str, int], list[Candle]] | None = None,
+    news_events: list[NewsEvent] | None = None,
+) -> AnalysisContext:
+    """Live orchestration via dependency injection.
+
+    Fetchers are injected so this is testable without MT5/OANDA. They MUST return only CLOSED
+    candles (no forming candle). Account state should come from the FTMO broker (MT5).
+    """
+    now_utc = now_utc or datetime.now(timezone.utc)
+    tf_candles = {tf: get_candles(tf, count) for tf, count in ENGINE_TF.items()}
+
+    secondary_m5 = get_secondary_candles("M5", ENGINE_TF["M5"]) if get_secondary_candles else None
+    data_quality = build_data_quality(
+        source, tf_candles.get("M5", []), secondary_m5, now_utc,
+        max_age_seconds=300.0, divergence_tol_pct=0.5,
+    )
+
+    news_state = None
+    if news_events is not None:
+        news_state = build_news_state(news_events, now_utc, symbol_cfg.get("news_currencies", []))
+
+    snapshot = get_snapshot()
+    return build_context(symbol, symbol_cfg, account_cfg, sessions_cfg, tf_candles,
+                         snapshot, data_quality, now_utc=now_utc, news_state=news_state)
 
 
 def build_context(
