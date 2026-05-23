@@ -153,6 +153,7 @@ Notas:
 
 ## Read These Files When Developing
 
+- `PROJECT_STATE.md` — **READ FIRST**: current phase, pending decisions, next step (save point)
 - `rules/execution_policy.md` — FTMO rules detail
 - `rules/ict_definitions.md` — ICT term definitions (exact)
 - `rules/report_template.md` — Report structure reference
