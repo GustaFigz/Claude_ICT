@@ -46,16 +46,26 @@ def _fixture_candles(symbol: str, now_utc: datetime, trend: str) -> dict:
     return {tf: fixtures.generate_candles(tf, counts[tf], start, step, now_utc, trend) for tf in NEEDED_TF}
 
 
+def _snapshot_from_config(account: dict) -> AccountSnapshot:
+    """Fallback snapshot when MT5 unavailable. Used for OANDA-only mode."""
+    cap = float(account["initial_capital"])
+    return AccountSnapshot(balance=cap, equity=cap, daily_pnl_pct=0.0, drawdown_pct=0.0,
+                          open_positions=0, consecutive_losses_today=0, trades_today=0)
+
+
 def _run_live(symbol, symbol_cfg, account, sessions, data_mode, now_utc):
-    """Live data path. Requires MT5 terminal + OANDA key. Account state always from MT5 (FTMO)."""
-    from data_pipeline import mt5_client, news_client, oanda_client
+    """Live data path. MT5 mode: full data from terminal. OANDA mode: candles only."""
+    from data_pipeline import news_client, oanda_client
 
     if data_mode == "mt5":
+        from data_pipeline import mt5_client
         get_candles = lambda tf, count: mt5_client.get_candles(symbol_cfg["broker_symbol"], tf, count)
         get_secondary = lambda tf, count: oanda_client.get_candles(symbol_cfg["oanda_symbol"], tf, count)
+        get_snapshot = mt5_client.get_account_snapshot
     elif data_mode == "oanda":
         get_candles = lambda tf, count: oanda_client.get_candles(symbol_cfg["oanda_symbol"], tf, count)
         get_secondary = None
+        get_snapshot = lambda: _snapshot_from_config(account)
     else:
         raise ValueError(f"unknown data_mode {data_mode}")
 
@@ -66,7 +76,7 @@ def _run_live(symbol, symbol_cfg, account, sessions, data_mode, now_utc):
         events = None
 
     return collect_live(symbol, symbol_cfg, account, sessions, get_candles,
-                        mt5_client.get_account_snapshot, source=data_mode, now_utc=now_utc,
+                        get_snapshot, source=data_mode, now_utc=now_utc,
                         get_secondary_candles=get_secondary, news_events=events)
 
 
@@ -101,7 +111,7 @@ def cmd_analyze(args) -> int:
     append_analysis(ctx, ROOT / "logs")
 
     v = ctx.validator_result
-    print(f"[{ctx.symbol}] {now_utc.isoformat()}  source={dq.source}")
+    print(f"[{ctx.symbol}] {now_utc.isoformat()}  source={ctx.data_quality.source}")
     print(f"  bias D1/H4/H1 : {ctx.structure.bias_d1_h4_h1}")
     print(f"  session       : {ctx.session_state.active_session} "
           f"(entry_window={ctx.session_state.in_entry_window})")
