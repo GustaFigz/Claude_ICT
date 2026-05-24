@@ -30,7 +30,28 @@
 
 ---
 
-## Workflow (Every Analysis)
+## Entry Point: How to Start an Analysis
+
+**When the user requests an analysis** (e.g., "analisa EURUSD", "analisa o euro", "run analysis"), Claude **MUST**:
+
+1. **Invoke the `/analyze` skill** immediately (located at `.claude/skills/analyze/SKILL.md`)
+2. The skill handles **everything automatically**: running the CLI, capturing the JSON path, reading the file, generating the report
+3. **Do NOT ask the user to run the CLI manually**
+4. **Do NOT ask the user to paste a JSON**
+5. **Do NOT skip the CLI step** and interpret from memory
+
+**The skill is the entry point for all analysis requests. Always use it.**
+
+Recognized trigger phrases:
+- "analisa [EURUSD | NAS100]", "analisa o euro/nas/nasdaq"
+- "faz análise", "roda análise", "run analysis"
+- "/analyze [symbol]"
+
+If no symbol is specified, the skill will ask which one. If the user simply pastes a JSON without requesting analysis, use the legacy workflow below (workflow after JSON is loaded).
+
+---
+
+## Workflow (After JSON is Loaded)
 
 1. **Receive JSON** from Python pipeline
 2. **Check validator status** immediately
