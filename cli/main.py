@@ -13,6 +13,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
+from dotenv import load_dotenv
+
+# Load environment variables from .env (for OANDA_API_KEY, MT5 credentials, etc.)
+load_dotenv()
 
 from data_pipeline import fixtures
 from data_pipeline.audit import append_analysis

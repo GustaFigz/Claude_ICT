@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from .schemas import AccountSnapshot, Candle
 
 _TF_MAP = {
-    "MN": "MONTHLY", "W1": "WEEKLY", "D1": "DAILY", "H4": "H4",
+    "MN": "MN", "W1": "W1", "D1": "D1", "H4": "H4",
     "H1": "H1", "M15": "M15", "M5": "M5", "M1": "M1",
 }
 
