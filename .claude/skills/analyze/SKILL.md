@@ -197,8 +197,10 @@ Setup [se setup_candidates não vazio]:
 - Modelo: [model] | Direção: [direction]
 - Entrada: [entry_level]  (FVG da zona mais próxima)
 - Stop: [stop]  ([risk_calculation.stop_pips] pips)
-- Alvo: [targets[0]]  ([risk_calculation.reward_pips] pips)
-- R:R: [risk_calculation.reward_risk]  [✓ ≥ 2R | ✗ < 2R]
+- Alvos (escada): [targets[0] = T1 / targets[1] = T2 / targets[2] = T3]  (T1 → R:R [reward_pips] pips)
+- R:R (sobre T1): [risk_calculation.reward_risk]  [✓ ≥ 2R | ✗ < 2R]
+- Refinamentos ICT: OTE [entry_in_ote ✓/✗, zona ote_zone] | Sweep [sweep_confirmed ✓/✗]
+- Breakers ativos (S/R invertidos): [liquidity.breakers — listar kind + zona, ou "nenhum"]
 [se vazio: "Sem setup válido no momento"]
 
 Risco FTMO:
@@ -248,6 +250,8 @@ Próximas Ações:
 | Stop | `setup_candidates[0].stop` |
 | Targets | `setup_candidates[0].targets[]` |
 | Confluence | `setup_candidates[0].confluence_factors[]`, `.confluence_score` |
+| OTE / Sweep | `setup_candidates[0].ote_zone`, `.entry_in_ote`, `.sweep_confirmed` |
+| Breakers | `liquidity.breakers[]` (mitigated OBs, role inverted) |
 | R:R | `risk_calculation.reward_risk` |
 | Stop/Reward pips | `risk_calculation.stop_pips`, `.reward_pips` |
 | Lot / Risk $ / Risk % | `risk_calculation.lot_size`, `.risk_amount`, `.risk_pct` |
