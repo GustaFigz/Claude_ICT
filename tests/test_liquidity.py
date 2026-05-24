@@ -1,7 +1,13 @@
 from _util import c
 
-from data_pipeline.schemas import SwingPoint
-from ict_engine.liquidity import detect_fvg, detect_order_blocks, detect_pools, premium_discount
+from data_pipeline.schemas import LiquidityPool, SwingPoint
+from ict_engine.liquidity import (
+    compute_draw_direction,
+    detect_fvg,
+    detect_order_blocks,
+    detect_pools,
+    premium_discount,
+)
 
 PIP = 1.0
 
@@ -44,3 +50,20 @@ def test_premium_discount():
     eq, prem, disc = premium_discount(candles)
     assert eq == 15
     assert prem == (15, 20) and disc == (10, 15)
+
+
+def test_draw_direction_nearest_bsl_is_up():
+    pools = [LiquidityPool(kind="BSL", price=101.0, touches=2),
+             LiquidityPool(kind="SSL", price=90.0, touches=2)]
+    assert compute_draw_direction(pools, price=100.0) == "UP"
+
+
+def test_draw_direction_nearest_ssl_is_down():
+    pools = [LiquidityPool(kind="BSL", price=120.0, touches=2),
+             LiquidityPool(kind="SSL", price=99.0, touches=2)]
+    assert compute_draw_direction(pools, price=100.0) == "DOWN"
+
+
+def test_draw_direction_falls_back_to_bias_when_no_pools():
+    assert compute_draw_direction([], price=100.0, bias="DOWN") == "DOWN"
+    assert compute_draw_direction([], price=100.0, bias="SIDEWAYS") is None

@@ -104,8 +104,10 @@ def build_context(
     if d1:
         eq, prem, disc = liq.premium_discount(d1)
         liquidity.equilibrium, liquidity.premium_zone, liquidity.discount_zone = eq, prem, disc
-    if structure.bias_d1_h4_h1 in {"UP", "DOWN"}:
-        liquidity.draw_direction = "UP" if structure.bias_d1_h4_h1 == "UP" else "DOWN"
+    if h1:
+        liquidity.draw_direction = liq.compute_draw_direction(
+            liquidity.pools, h1[-1].close, bias=structure.bias_d1_h4_h1
+        )
 
     # --- FVGs on entry timeframe (M5) and H1 ---
     entry_candles = tf_candles.get("M5", []) or h1

@@ -79,3 +79,28 @@ def premium_discount(candles: list[Candle]) -> tuple[float, tuple[float, float],
     lo = min(c.low for c in candles)
     eq = (hi + lo) / 2
     return eq, (eq, hi), (lo, eq)
+
+
+def compute_draw_direction(
+    pools: list[LiquidityPool], price: float, bias: str | None = None
+) -> str | None:
+    """Draw on Liquidity: where price is being pulled, from the nearest unswept pool.
+
+    The market gravitates toward resting liquidity. The closest pool to current price
+    defines the immediate draw:
+      - nearest pool is BSL (equal highs above) -> draw UP (reaching for buy stops)
+      - nearest pool is SSL (equal lows below) -> draw DOWN (reaching for sell stops)
+    Ties or no pools fall back to the structural bias (UP/DOWN), else None.
+    """
+    above = [p for p in pools if p.kind == "BSL" and p.price > price]
+    below = [p for p in pools if p.kind == "SSL" and p.price < price]
+    nearest_up = min((p.price - price for p in above), default=None)
+    nearest_down = min((price - p.price for p in below), default=None)
+
+    if nearest_up is not None and (nearest_down is None or nearest_up < nearest_down):
+        return "UP"
+    if nearest_down is not None and (nearest_up is None or nearest_down < nearest_up):
+        return "DOWN"
+    if bias in {"UP", "DOWN"}:
+        return bias
+    return None
