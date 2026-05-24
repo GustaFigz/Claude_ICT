@@ -4,6 +4,7 @@ from data_pipeline.schemas import LiquidityPool, SwingPoint
 from ict_engine.liquidity import (
     atr_pips,
     compute_draw_direction,
+    detect_breakers,
     detect_fvg,
     detect_order_blocks,
     detect_pools,
@@ -44,6 +45,21 @@ def test_pools_equal_highs_and_lows():
     assert by_kind["BSL"].price > by_kind["SSL"].price
     assert by_kind["BSL"].price == 100.5  # mean of 100, 101
     assert by_kind["SSL"].price == 90.0   # mean of 90, 90
+
+
+def test_detect_breakers_inverts_mitigated_ob():
+    # candle 0 = bullish OB (bottom 9, top 12); candle 3 closes at 8 (< 9) -> OB mitigated
+    candles = [c(0, 12, 12, 9, 10), c(1, 10, 10.5, 9.5, 10), c(2, 12, 15, 11, 14), c(3, 9, 9, 7, 8)]
+    breakers = detect_breakers(candles, PIP)
+    assert len(breakers) == 1
+    b = breakers[0]
+    assert b.kind == "bearish" and b.mitigated is True and b.top == 12 and b.bottom == 9
+
+
+def test_no_breakers_when_ob_not_mitigated():
+    # same bullish OB but price never closes below its bottom -> no breaker
+    candles = [c(0, 12, 12, 9, 10), c(1, 10, 10.5, 9.5, 10), c(2, 12, 15, 11, 14), c(3, 14, 16, 13, 15)]
+    assert detect_breakers(candles, PIP) == []
 
 
 def test_premium_discount():

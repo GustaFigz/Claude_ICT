@@ -66,6 +66,40 @@ def detect_order_blocks(candles: list[Candle], pip_size: float, displacement_pip
     return out
 
 
+def _mark_ob_mitigated(obs: list[OrderBlock], candles: list[Candle]) -> None:
+    """Flag an OB as mitigated once a later candle CLOSES through it (not just wicks).
+
+    Bullish OB mitigated when a later close < its bottom; bearish when a later close > its top.
+    """
+    for ob in obs:
+        for c in candles:
+            if c.time <= ob.time:
+                continue
+            if ob.kind == "bullish" and c.close < ob.bottom:
+                ob.mitigated = True
+                break
+            if ob.kind == "bearish" and c.close > ob.top:
+                ob.mitigated = True
+                break
+
+
+def detect_breakers(candles: list[Candle], pip_size: float, displacement_pips: float = 0.0) -> list[OrderBlock]:
+    """Breaker blocks: order blocks that were mitigated (price closed through) and so flip role.
+
+    A mitigated bullish OB becomes a bearish breaker (new resistance); a mitigated bearish OB
+    becomes a bullish breaker (new support). Returned with kind already inverted and mitigated=True.
+    """
+    obs = detect_order_blocks(candles, pip_size, displacement_pips)
+    _mark_ob_mitigated(obs, candles)
+    breakers: list[OrderBlock] = []
+    for ob in obs:
+        if not ob.mitigated:
+            continue
+        flipped = "bearish" if ob.kind == "bullish" else "bullish"
+        breakers.append(OrderBlock(kind=flipped, top=ob.top, bottom=ob.bottom, time=ob.time, mitigated=True))
+    return breakers
+
+
 def detect_pools(swings: list[SwingPoint], pip_size: float, tol_pips: float = 2.0) -> list[LiquidityPool]:
     """Equal highs (BSL above) / equal lows (SSL below) clustered within tolerance.
 

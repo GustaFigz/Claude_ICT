@@ -110,6 +110,7 @@ def build_context(
         liquidity.draw_direction = liq.compute_draw_direction(
             liquidity.pools, h1[-1].close, bias=structure.bias_d1_h4_h1
         )
+        liquidity.breakers = liq.detect_breakers(h1, pip_size)
 
     # --- FVGs on entry timeframe (M5) and H1 ---
     # Filter out noise: keep only gaps >= 20% of ATR (ICT displacement threshold).

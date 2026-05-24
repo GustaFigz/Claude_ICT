@@ -92,6 +92,7 @@ class Liquidity(BaseModel):
     equilibrium: Optional[float] = None
     premium_zone: Optional[tuple[float, float]] = None
     discount_zone: Optional[tuple[float, float]] = None
+    breakers: list[OrderBlock] = Field(default_factory=list)  # mitigated OBs, role inverted
 
 
 class SetupCandidate(BaseModel):
