@@ -4,6 +4,22 @@ from __future__ import annotations
 from data_pipeline.schemas import Candle, FVG, LiquidityPool, OrderBlock, SwingPoint
 
 
+def atr_pips(candles: list[Candle], pip_size: float, period: int = 14) -> float:
+    """Average True Range over the last `period` candles, expressed in pips.
+
+    True Range = max(high-low, |high-prev_close|, |low-prev_close|). Returns 0.0 if
+    there are not enough candles. Used to size the minimum meaningful FVG (filters noise).
+    """
+    if len(candles) < period + 1 or pip_size <= 0:
+        return 0.0
+    trs: list[float] = []
+    for i in range(len(candles) - period, len(candles)):
+        cur, prev = candles[i], candles[i - 1]
+        tr = max(cur.high - cur.low, abs(cur.high - prev.close), abs(cur.low - prev.close))
+        trs.append(tr)
+    return (sum(trs) / len(trs)) / pip_size
+
+
 def detect_fvg(candles: list[Candle], pip_size: float, min_pips: float = 0.0) -> list[FVG]:
     """3-candle imbalance between candle i and i+2."""
     out: list[FVG] = []

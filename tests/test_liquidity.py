@@ -2,6 +2,7 @@ from _util import c
 
 from data_pipeline.schemas import LiquidityPool, SwingPoint
 from ict_engine.liquidity import (
+    atr_pips,
     compute_draw_direction,
     detect_fvg,
     detect_order_blocks,
@@ -67,3 +68,19 @@ def test_draw_direction_nearest_ssl_is_down():
 def test_draw_direction_falls_back_to_bias_when_no_pools():
     assert compute_draw_direction([], price=100.0, bias="DOWN") == "DOWN"
     assert compute_draw_direction([], price=100.0, bias="SIDEWAYS") is None
+
+
+def test_atr_pips_constant_range():
+    candles = [c(i, 100, 105, 95, 100) for i in range(16)]  # TR = 10 each
+    assert atr_pips(candles, PIP, period=14) == 10.0
+
+
+def test_atr_pips_insufficient_candles():
+    candles = [c(i, 100, 105, 95, 100) for i in range(5)]
+    assert atr_pips(candles, PIP, period=14) == 0.0
+
+
+def test_fvg_min_pips_filters_small_gaps():
+    candles = [c(0, 9, 10, 8, 9), c(1, 10, 11, 9, 10.5), c(2, 12.5, 13, 12, 12.5)]
+    assert len(detect_fvg(candles, PIP, min_pips=0.0)) == 1  # 2-pip gap kept
+    assert detect_fvg(candles, PIP, min_pips=5.0) == []      # 2-pip gap filtered

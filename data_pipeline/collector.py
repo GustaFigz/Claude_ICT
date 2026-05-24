@@ -110,8 +110,13 @@ def build_context(
         )
 
     # --- FVGs on entry timeframe (M5) and H1 ---
+    # Filter out noise: keep only gaps >= 20% of ATR (ICT displacement threshold).
     entry_candles = tf_candles.get("M5", []) or h1
-    entry_fvgs = liq.detect_fvg(entry_candles, pip_size) if entry_candles else []
+    if entry_candles:
+        min_fvg_pips = 0.20 * liq.atr_pips(entry_candles, pip_size)
+        entry_fvgs = liq.detect_fvg(entry_candles, pip_size, min_pips=min_fvg_pips)
+    else:
+        entry_fvgs = []
     structure.fvg_active = [f for f in entry_fvgs if not f.filled][:10]
 
     # --- session ---
