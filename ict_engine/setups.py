@@ -30,6 +30,27 @@ def _ote_zone(low: float, high: float, direction: str) -> tuple[float, float] | 
     return (low + _OTE_SHALLOW * rng, low + _OTE_DEEP * rng)
 
 
+def _build_targets(direction: str, entry: float, primary: float, liquidity: Liquidity) -> list[float]:
+    """Multi-target ladder. T1 = `primary` (nearest pool, drives R:R); then further pools in the
+    trade direction; then the HTF dealing-range extreme. Deduped, rounded, capped at 3.
+    """
+    levels = [primary]
+    if direction == "LONG":
+        levels += sorted(p.price for p in liquidity.pools if p.price > primary)
+        if liquidity.premium_zone and liquidity.premium_zone[1] > max(levels):
+            levels.append(liquidity.premium_zone[1])
+    else:
+        levels += sorted((p.price for p in liquidity.pools if p.price < primary), reverse=True)
+        if liquidity.discount_zone and liquidity.discount_zone[0] < min(levels):
+            levels.append(liquidity.discount_zone[0])
+    out: list[float] = []
+    for lv in levels:
+        r = round(lv, 5)
+        if r not in out:
+            out.append(r)
+    return out[:3]
+
+
 def _sweep_confirmed(candle: Candle, pools: list, direction: str) -> bool:
     """True if `candle` swept a liquidity pool against the trade then rejected back inside.
 
@@ -120,7 +141,7 @@ def build_silver_bullet(
         direction=direction,
         entry_level=round(entry, 5),
         stop=round(stop, 5),
-        targets=[round(target, 5)],
+        targets=_build_targets(direction, entry, target, liquidity),
         confluence_factors=factors,
         confluence_score=len(factors),
         ote_zone=(round(ote_zone[0], 5), round(ote_zone[1], 5)) if ote_zone else None,

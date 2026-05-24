@@ -120,6 +120,24 @@ def test_sweep_adds_confluence_in_setup():
     assert any("sweep" in f.lower() for f in setup.confluence_factors)
 
 
+def test_multi_target_ladder():
+    structure = _structure_up()
+    liquidity = Liquidity(
+        pools=[LiquidityPool(kind="BSL", price=1.1050, touches=2),
+               LiquidityPool(kind="BSL", price=1.1100, touches=2)],
+        draw_direction="UP",
+        premium_zone=(1.1000, 1.1200),
+    )
+    session = SessionState(active_session="ny_am_silver_bullet", in_entry_window=True)
+    fvgs = [FVG(kind="bullish", bottom=1.0980, top=1.0990, time=_T, size_pips=10, filled=False)]
+    entry_candles = [c(0, 1.0995, 1.1005, 1.0990, 1.1000)]
+    setup = build_silver_bullet(structure, liquidity, session, fvgs, entry_candles, EURUSD)
+    assert setup is not None
+    # T1 nearest pool, T2 next pool, T3 HTF premium extreme; all above entry, ascending
+    assert setup.targets == [1.1050, 1.1100, 1.1200]
+    assert all(t > setup.entry_level for t in setup.targets)
+
+
 def test_rejects_long_with_target_below_entry():
     # LONG bias but no pool above entry and the premium-zone top falls below entry:
     # target would land below entry -> candidate must be rejected (reproduces the

@@ -245,17 +245,17 @@ Para o relatório não alegar features inexistentes. Atualizar conforme o engine
 - Draw on Liquidity pela proximidade dos pools (`compute_draw_direction`)
 - Premium/Discount (`premium_discount`)
 - Silver Bullet com validação de direção do target (`setups.py::build_silver_bullet`)
+- **OTE** (Fibonacci 61.8–79% do displacement leg do H1) → `setups.py::_ote_zone`; entra como
+  fator de confluência quando a entrada cai na banda (`ote_zone`, `entry_in_ote`)
+- **Order Blocks na confluência**: OB não-mitigado do tipo certo que contém a entrada soma fator
+- **Liquidity Sweep confirmation**: `setups.py::_sweep_confirmed` (LONG varre SSL, SHORT varre BSL)
+  → `sweep_confirmed` + fator de confluência
 - Validação de risco/FTMO e gate do validator (`risk.py`, `validator.py`)
 
-**Implementado mas NÃO ligado ao setup ainda:**
-- Order Blocks (`detect_order_blocks` existe; ainda não entra na confluência nem na entrada)
-
-**Planejado (Fase D — após shadow trading; ver plano):**
-- OTE (Fibonacci 61.8–79% do displacement) + score de confluência
-- Liquidity Sweep confirmation (wick beyond + close inside) antes da entrada
-- Breaker Blocks (OB mitigado que inverte)
+**Planejado (Fase D restante — confiança live ainda gated em shadow trading; ver plano):**
+- Breaker Blocks (OB mitigado que inverte de papel)
 - Multi-target exits (T1=CE do FVG, T2=próximo pool, T3=extremo do range HTF)
-- OB mitigation ancorada ao BOS/CHOCH
+- OB mitigation/anchoring explícito ao BOS/CHOCH mais recente (hoje a detecção é por displacement)
 
 ---
 
