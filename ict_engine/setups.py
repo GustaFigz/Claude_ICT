@@ -10,6 +10,24 @@ from data_pipeline.schemas import (
     Structure,
 )
 
+# ICT Optimal Trade Entry: the 61.8%-79% retracement band of the displacement leg.
+_OTE_SHALLOW = 0.618
+_OTE_DEEP = 0.79
+
+
+def _ote_zone(low: float, high: float, direction: str) -> tuple[float, float] | None:
+    """OTE band (61.8-79% retracement) of the leg [low, high] for the given direction.
+
+    LONG retraces down from the high into discount; SHORT retraces up from the low into premium.
+    Returns (zone_low, zone_high) or None if the leg is degenerate.
+    """
+    rng = high - low
+    if rng <= 0:
+        return None
+    if direction == "LONG":
+        return (high - _OTE_DEEP * rng, high - _OTE_SHALLOW * rng)
+    return (low + _OTE_SHALLOW * rng, low + _OTE_DEEP * rng)
+
 
 def build_silver_bullet(
     structure: Structure,
@@ -62,6 +80,16 @@ def build_silver_bullet(
     if liquidity.draw_direction:
         factors.append(f"Draw on liquidity {liquidity.draw_direction}")
 
+    # OTE: does entry fall in the 61.8-79% retracement of the H1 displacement leg?
+    h1 = structure.by_tf.get("H1")
+    ote_zone = None
+    entry_in_ote = False
+    if h1 and h1.last_swing_low is not None and h1.last_swing_high is not None:
+        ote_zone = _ote_zone(h1.last_swing_low, h1.last_swing_high, direction)
+        if ote_zone and ote_zone[0] <= entry <= ote_zone[1]:
+            entry_in_ote = True
+            factors.append("Entry in OTE (61.8-79%)")
+
     return SetupCandidate(
         model="silver_bullet",
         direction=direction,
@@ -70,4 +98,6 @@ def build_silver_bullet(
         targets=[round(target, 5)],
         confluence_factors=factors,
         confluence_score=len(factors),
+        ote_zone=(round(ote_zone[0], 5), round(ote_zone[1], 5)) if ote_zone else None,
+        entry_in_ote=entry_in_ote,
     )

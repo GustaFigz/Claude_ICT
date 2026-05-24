@@ -102,6 +102,9 @@ class SetupCandidate(BaseModel):
     targets: list[float] = Field(default_factory=list)
     confluence_factors: list[str] = Field(default_factory=list)
     confluence_score: int = 0
+    ote_zone: Optional[tuple[float, float]] = None   # Fib 61.8-79% of the displacement leg
+    entry_in_ote: bool = False
+    sweep_confirmed: bool = False                     # last candle swept a pool before entry
 
 
 class RiskCalculation(BaseModel):
