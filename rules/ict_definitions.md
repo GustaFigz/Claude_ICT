@@ -18,14 +18,19 @@
   - The `low` of the N candles immediately to its right
 - N = same as Swing High
 
-**Break of Structure (BOS):**
-- Price close (not wick) moves beyond previous swing point
-- Direction: BOS up = above previous Swing High, BOS down = below previous Swing Low
+**Break of Structure (BOS) — continuation:**
+- Price **close** (not wick) breaks the last swing **in the same direction as the prior bias**.
+- `BOS_UP` = close > last swing high while prior bias was UP (or SIDEWAYS).
+- `BOS_DOWN` = close < last swing low while prior bias was DOWN (or SIDEWAYS).
+- Meaning: the existing trend is confirmed/extended.
 
-**Change of Character (CHOCH):**
-- A BOS combined with a reversal in momentum
-- Signals potential HTF move
-- Requires: BOS + lower low structure (or higher high) in opposite direction
+**Change of Character (CHOCH) — reversal:**
+- Price **close** breaks the last swing **against the prior bias** — the first structural sign of
+  a trend change. More significant than a BOS; treat with caution until HTF confirms.
+- `CHOCH_UP` = close > last swing high while prior bias was DOWN.
+- `CHOCH_DOWN` = close < last swing low while prior bias was UP.
+- *Engine:* `ict_engine/structure.py::_last_event` compares the close to the last swing and the
+  previous bias (`_bias_from_swings(swings[:-1])`). The schema validates exactly these four values.
 
 ---
 
@@ -38,12 +43,18 @@
 - Candle N+1 is neutral/indecisive
 - FVG is **active** if not yet filled by price action
 - **Size threshold:** FVG must be > 20% of average ATR on the timeframe
+- *Engine:* `ict_engine/liquidity.py::detect_fvg` (3-candle gap) + `atr_pips`; the collector passes
+  `min_pips = 0.20 * ATR` so sub-threshold noise is dropped before reaching the report.
 
 **Liquidity Pool (BSL/SSL):**
 - Concentration of equal highs or equal lows (tolerance: ±2 pips)
-- BSL (Buy Side Liquidity): cluster of lows where buyers may have stopped
-- SSL (Sell Side Liquidity): cluster of highs where sellers may have stopped
+- **BSL (Buy Side Liquidity):** cluster of equal **highs ABOVE** the market. Buy stops (from
+  shorts) and breakout buy orders rest here — price is drawn up to "grab" them.
+- **SSL (Sell Side Liquidity):** cluster of equal **lows BELOW** the market. Sell stops (from
+  longs) and breakout sell orders rest here — price is drawn down to "grab" them.
 - **Validation:** Must have 2+ confluent points within tolerance
+- *Engine:* `ict_engine/liquidity.py::detect_pools` — equal highs → BSL, equal lows → SSL.
+  (Mnemonic: the side names where the *stops* are, not where price currently is.)
 
 **Premium Zone:**
 - Price range above the weekly/daily balance/equilibrium level
@@ -56,9 +67,12 @@
 - Not entry area; potential support
 
 **Draw on Liquidity (DoL):**
-- Direction of next expected liquidity grab (BSL or SSL)
-- Calculated from current price relative to identified pools
-- Informs bias direction (buy into BSL or sell into SSL)
+- Direction of the next expected liquidity grab (toward BSL above or SSL below).
+- *Engine:* `ict_engine/liquidity.py::compute_draw_direction` — the **nearest unswept pool** to the
+  current price sets the immediate draw: nearest BSL above → `UP`, nearest SSL below → `DOWN`.
+  Falls back to the structural bias when there are no qualifying pools.
+- The draw **can diverge from HTF bias** (e.g. bias DOWN but price reaching up for BSL before
+  continuing down). That divergence is signal, not error — surface it in the narrative.
 
 ---
 
@@ -217,6 +231,31 @@ A setup requires **minimum 3 confluency factors** to be considered valid:
 **Is confluence real?**
 - Can I count 3+ factors from different categories?
 - Would this setup work in hindsight too?
+
+---
+
+## Implementation Status (o que o engine realmente computa)
+
+Para o relatório não alegar features inexistentes. Atualizar conforme o engine evolui.
+
+**Implementado e usado nos setups:**
+- Swings, bias por TF, BOS/CHOCH (`structure.py`)
+- FVG com filtro ATR (`liquidity.py::detect_fvg` + `atr_pips`)
+- Pools BSL/SSL com rótulos corretos (`detect_pools`)
+- Draw on Liquidity pela proximidade dos pools (`compute_draw_direction`)
+- Premium/Discount (`premium_discount`)
+- Silver Bullet com validação de direção do target (`setups.py::build_silver_bullet`)
+- Validação de risco/FTMO e gate do validator (`risk.py`, `validator.py`)
+
+**Implementado mas NÃO ligado ao setup ainda:**
+- Order Blocks (`detect_order_blocks` existe; ainda não entra na confluência nem na entrada)
+
+**Planejado (Fase D — após shadow trading; ver plano):**
+- OTE (Fibonacci 61.8–79% do displacement) + score de confluência
+- Liquidity Sweep confirmation (wick beyond + close inside) antes da entrada
+- Breaker Blocks (OB mitigado que inverte)
+- Multi-target exits (T1=CE do FVG, T2=próximo pool, T3=extremo do range HTF)
+- OB mitigation ancorada ao BOS/CHOCH
 
 ---
 
