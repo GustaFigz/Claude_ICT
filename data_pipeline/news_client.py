@@ -7,6 +7,7 @@ second source / manual pre-session check before trading live.
 """
 from __future__ import annotations
 
+import time
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
@@ -20,10 +21,24 @@ FF_URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.xml"
 FF_SOURCE_TZ = "America/New_York"
 
 
-def fetch_calendar(url: str = FF_URL, timeout: int = 10) -> str:
-    resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0 (ICT-System)"}, timeout=timeout)
-    resp.raise_for_status()
-    return resp.text
+def fetch_calendar(url: str = FF_URL, timeout: int = 10, retries: int = 3, backoff: float = 1.0) -> str:
+    """Fetch the FF calendar XML with retry + exponential backoff.
+
+    Transient network blips shouldn't blind the news gate. Tries `retries` times with
+    delays backoff, 2*backoff, ... and re-raises the last error if all attempts fail
+    (the caller turns that into a fail-safe blackout).
+    """
+    last_exc: Exception | None = None
+    for attempt in range(retries):
+        try:
+            resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0 (ICT-System)"}, timeout=timeout)
+            resp.raise_for_status()
+            return resp.text
+        except requests.RequestException as e:
+            last_exc = e
+            if attempt < retries - 1:
+                time.sleep(backoff * (2 ** attempt))
+    raise last_exc  # type: ignore[misc]
 
 
 def parse_calendar(xml_text: str) -> list[dict]:

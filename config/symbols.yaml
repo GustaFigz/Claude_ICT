@@ -12,6 +12,7 @@ symbols:
     oanda_symbol: "EUR_USD"
     correlation_pair: "DXY"
     news_currencies: ["EUR", "USD"]
+    news_blackout_minutes: 90     # block this many min before a high-impact event
     timeframes: [MN, W1, D1, H4, H1, M15, M5, M1]
     digits: 5
     pip_size: 0.0001              # 1 pip
@@ -29,6 +30,7 @@ symbols:
     oanda_symbol: "NAS100_USD"
     correlation_pair: "US500"
     news_currencies: ["USD"]      # index reacts to US macro (FOMC, NFP, CPI)
+    news_blackout_minutes: 60     # indices: shorter pre-event window
     timeframes: [MN, W1, D1, H4, H1, M15, M5, M1]
     digits: 1
     pip_size: 1.0                 # 1 index point
