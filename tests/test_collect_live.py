@@ -35,10 +35,21 @@ def _snapshot():
 def test_live_fresh_runs():
     end = NOW + timedelta(minutes=5)  # M5 last candle lands on NOW
     ctx = collect_live("EURUSD", SYMBOL_CFG, ACCOUNT_CFG, SESSIONS_CFG,
-                       _candles_fn(end), _snapshot, source="mt5", now_utc=NOW)
+                       _candles_fn(end), _snapshot, source="mt5", now_utc=NOW,
+                       news_events=[])  # feed returned no relevant events -> safe
     assert ctx.data_quality.source == "mt5"
     assert ctx.data_quality.fresh is True
     assert ctx.structure.bias_d1_h4_h1 == "UP"
+    assert ctx.news_state.blackout is False
+
+
+def test_live_news_feed_failure_fails_safe():
+    end = NOW + timedelta(minutes=5)
+    ctx = collect_live("EURUSD", SYMBOL_CFG, ACCOUNT_CFG, SESSIONS_CFG,
+                       _candles_fn(end), _snapshot, source="mt5", now_utc=NOW,
+                       news_events=None)  # feed unavailable
+    assert ctx.news_state.blackout is True
+    assert ctx.validator_result.status == Status.BLOCKED
 
 
 def test_live_stale_blocks():

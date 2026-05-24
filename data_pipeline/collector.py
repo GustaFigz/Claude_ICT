@@ -59,9 +59,11 @@ def collect_live(
         max_age_seconds=300.0, divergence_tol_pct=0.5,
     )
 
-    news_state = None
-    if news_events is not None:
-        news_state = build_news_state(news_events, now_utc, symbol_cfg.get("news_currencies", []))
+    # Always evaluate news in live mode: None (feed failed) fails safe to blackout.
+    news_state = build_news_state(
+        news_events, now_utc, symbol_cfg.get("news_currencies", []),
+        blackout_minutes=symbol_cfg.get("news_blackout_minutes", 90),
+    )
 
     snapshot = get_snapshot()
     return build_context(symbol, symbol_cfg, account_cfg, sessions_cfg, tf_candles,

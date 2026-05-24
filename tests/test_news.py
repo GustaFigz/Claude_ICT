@@ -35,3 +35,32 @@ def test_no_blackout_when_currency_irrelevant():
     now = datetime(2026, 5, 26, 12, 0, tzinfo=timezone.utc)
     state = build_news_state(events, now, currencies=["GBP", "JPY"])
     assert state.blackout is False
+
+
+def test_blackout_fail_safe_when_feed_none():
+    now = datetime(2026, 5, 26, 12, 0, tzinfo=timezone.utc)
+    state = build_news_state(None, now, currencies=["EUR", "USD"])
+    assert state.blackout is True
+    assert "unavailable" in (state.blackout_reason or "").lower()
+
+
+def test_no_blackout_when_feed_empty():
+    now = datetime(2026, 5, 26, 12, 0, tzinfo=timezone.utc)
+    state = build_news_state([], now, currencies=["EUR", "USD"])
+    assert state.blackout is False
+    assert state.blackout_reason is None
+
+
+def test_blackout_post_event_window():
+    events = events_from_raw(parse_calendar(SAMPLE_XML))  # NFP at 12:30 UTC
+    now = datetime(2026, 5, 26, 12, 45, tzinfo=timezone.utc)  # 15 min after NFP
+    state = build_news_state(events, now, currencies=["USD"], post_event_minutes=30)
+    assert state.blackout is True
+    assert "post-event" in (state.blackout_reason or "").lower()
+
+
+def test_no_blackout_after_post_event_window_clears():
+    events = events_from_raw(parse_calendar(SAMPLE_XML))  # NFP at 12:30 UTC
+    now = datetime(2026, 5, 26, 13, 15, tzinfo=timezone.utc)  # 45 min after NFP
+    state = build_news_state(events, now, currencies=["USD"], post_event_minutes=30)
+    assert state.blackout is False
