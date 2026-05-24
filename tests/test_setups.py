@@ -5,7 +5,7 @@ from _util import c
 from data_pipeline.schemas import (
     FVG, Liquidity, LiquidityPool, OrderBlock, SessionState, Structure, StructureTF,
 )
-from ict_engine.setups import _ote_zone, build_silver_bullet
+from ict_engine.setups import _ote_zone, _sweep_confirmed, build_silver_bullet
 
 EURUSD = {"pip_size": 0.0001}
 _T = datetime(2026, 5, 26, 14, tzinfo=timezone.utc)
@@ -91,6 +91,33 @@ def test_mitigated_order_block_not_counted():
                                 order_blocks=obs)
     assert setup is not None
     assert not any("Order Block" in f for f in setup.confluence_factors)
+
+
+def test_sweep_confirmed_helper():
+    pools = [LiquidityPool(kind="SSL", price=1.0950, touches=2),
+             LiquidityPool(kind="BSL", price=1.1050, touches=2)]
+    # LONG: low 1.0940 < SSL 1.0950 < close 1.0960 -> swept
+    assert _sweep_confirmed(c(0, 1.0945, 1.0965, 1.0940, 1.0960), pools, "LONG") is True
+    # LONG but close below SSL (no rejection back inside) -> not swept
+    assert _sweep_confirmed(c(0, 1.0945, 1.0955, 1.0940, 1.0945), pools, "LONG") is False
+    # SHORT: high 1.1060 > BSL 1.1050 > close 1.1040 -> swept
+    assert _sweep_confirmed(c(0, 1.1045, 1.1060, 1.1035, 1.1040), pools, "SHORT") is True
+
+
+def test_sweep_adds_confluence_in_setup():
+    structure = _structure_up()
+    liquidity = Liquidity(
+        pools=[LiquidityPool(kind="SSL", price=1.0950, touches=2),
+               LiquidityPool(kind="BSL", price=1.1050, touches=2)],
+        draw_direction="UP",
+    )
+    session = SessionState(active_session="ny_am_silver_bullet", in_entry_window=True)
+    fvgs = [FVG(kind="bullish", bottom=1.0945, top=1.0955, time=_T, size_pips=10, filled=False)]
+    entry_candles = [c(0, 1.0945, 1.0965, 1.0940, 1.0960)]  # sweeps SSL 1.0950
+    setup = build_silver_bullet(structure, liquidity, session, fvgs, entry_candles, EURUSD)
+    assert setup is not None
+    assert setup.sweep_confirmed is True
+    assert any("sweep" in f.lower() for f in setup.confluence_factors)
 
 
 def test_rejects_long_with_target_below_entry():

@@ -30,6 +30,17 @@ def _ote_zone(low: float, high: float, direction: str) -> tuple[float, float] | 
     return (low + _OTE_SHALLOW * rng, low + _OTE_DEEP * rng)
 
 
+def _sweep_confirmed(candle: Candle, pools: list, direction: str) -> bool:
+    """True if `candle` swept a liquidity pool against the trade then rejected back inside.
+
+    LONG: wick takes an SSL (equal lows below) — low < pool < close — a bullish grab.
+    SHORT: wick takes a BSL (equal highs above) — high > pool > close — a bearish grab.
+    """
+    if direction == "LONG":
+        return any(p.kind == "SSL" and candle.low < p.price < candle.close for p in pools)
+    return any(p.kind == "BSL" and candle.high > p.price > candle.close for p in pools)
+
+
 def build_silver_bullet(
     structure: Structure,
     liquidity: Liquidity,
@@ -99,6 +110,11 @@ def build_silver_bullet(
             entry_in_ote = True
             factors.append("Entry in OTE (61.8-79%)")
 
+    # Liquidity sweep: did the latest candle grab a pool against us then reject?
+    sweep = _sweep_confirmed(entry_candles[-1], liquidity.pools, direction)
+    if sweep:
+        factors.append("Liquidity sweep confirmed")
+
     return SetupCandidate(
         model="silver_bullet",
         direction=direction,
@@ -109,4 +125,5 @@ def build_silver_bullet(
         confluence_score=len(factors),
         ote_zone=(round(ote_zone[0], 5), round(ote_zone[1], 5)) if ote_zone else None,
         entry_in_ote=entry_in_ote,
+        sweep_confirmed=sweep,
     )
