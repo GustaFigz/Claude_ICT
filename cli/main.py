@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -73,11 +74,8 @@ def _run_live(symbol, symbol_cfg, account, sessions, data_mode, now_utc):
     else:
         raise ValueError(f"unknown data_mode {data_mode}")
 
-    try:
-        events = news_client.events_from_raw(news_client.parse_calendar(news_client.fetch_calendar()))
-    except Exception as e:  # network/feed failure: proceed without news (validator stays conservative)
-        print(f"  [warn] calendar fetch failed: {e}")
-        events = None
+    # FF first, Trading Economics fallback. None -> build_news_state fails safe to blackout.
+    events = news_client.fetch_with_fallback(os.getenv("TRADING_ECONOMICS_API_KEY"))
 
     return collect_live(symbol, symbol_cfg, account, sessions, get_candles,
                         get_snapshot, source=data_mode, now_utc=now_utc,

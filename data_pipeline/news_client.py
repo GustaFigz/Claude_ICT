@@ -78,6 +78,64 @@ def events_from_raw(raw: list[dict], src_tz: str = FF_SOURCE_TZ) -> list[NewsEve
     return out
 
 
+# --- Trading Economics fallback source -------------------------------------------------
+
+TE_URL = "https://api.tradingeconomics.com/calendar"
+# Country (as TE reports it) -> ISO currency. Covers the majors the system trades.
+_TE_COUNTRY_CCY = {
+    "united states": "USD", "euro area": "EUR", "germany": "EUR", "france": "EUR",
+    "italy": "EUR", "spain": "EUR", "united kingdom": "GBP", "japan": "JPY",
+    "canada": "CAD", "australia": "AUD", "new zealand": "NZD", "switzerland": "CHF",
+}
+_TE_IMPACT = {1: "Low", 2: "Medium", 3: "High"}
+
+
+def fetch_calendar_te(api_key: str, timeout: int = 10) -> list[NewsEvent]:
+    """Trading Economics calendar -> NewsEvent list (fallback for ForexFactory).
+
+    Free tier accepts `c=guest:guest` for limited testing. Times are returned in UTC.
+    Raises on network/HTTP error so the caller can fall through to the next source.
+    """
+    resp = requests.get(TE_URL, params={"c": api_key, "f": "json"}, timeout=timeout)
+    resp.raise_for_status()
+    out: list[NewsEvent] = []
+    for item in resp.json():
+        raw_date = (item.get("Date") or "").replace("Z", "+00:00")
+        try:
+            dt = datetime.fromisoformat(raw_date)
+        except ValueError:
+            continue
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        currency = (item.get("Currency") or "").strip().upper()
+        if not currency:
+            currency = _TE_COUNTRY_CCY.get((item.get("Country") or "").strip().lower(), "")
+        impact = _TE_IMPACT.get(item.get("Importance"), "Low")
+        title = (item.get("Event") or item.get("Category") or "").strip()
+        out.append(NewsEvent(time_utc=dt.astimezone(timezone.utc), currency=currency,
+                             impact=impact, title=title))
+    return out
+
+
+def fetch_with_fallback(te_api_key: str | None = None) -> list[NewsEvent] | None:
+    """Try ForexFactory, then Trading Economics. Return None if BOTH fail.
+
+    None signals the caller (build_news_state) to fail safe into a blackout.
+    """
+    try:
+        return events_from_raw(parse_calendar(fetch_calendar()))
+    except Exception as e:  # noqa: BLE001 — any FF failure should fall through
+        print(f"  [warn] ForexFactory failed: {e}")
+    if te_api_key:
+        try:
+            events = fetch_calendar_te(te_api_key)
+            print("  [info] using Trading Economics fallback calendar")
+            return events
+        except Exception as e:  # noqa: BLE001
+            print(f"  [warn] Trading Economics fallback failed: {e}")
+    return None
+
+
 def build_news_state(
     events_utc: list[NewsEvent] | None,
     now_utc: datetime,

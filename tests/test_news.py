@@ -1,8 +1,10 @@
 from datetime import datetime, timezone
 
+import data_pipeline.news_client as nc
 from data_pipeline.news_client import (
-    build_news_state, events_from_raw, parse_calendar, parse_ff_datetime,
+    build_news_state, events_from_raw, fetch_with_fallback, parse_calendar, parse_ff_datetime,
 )
+from data_pipeline.schemas import NewsEvent
 
 SAMPLE_XML = """<weeklyevents>
   <event><title>Non-Farm Payrolls</title><country>USD</country>
@@ -64,3 +66,32 @@ def test_no_blackout_after_post_event_window_clears():
     now = datetime(2026, 5, 26, 13, 15, tzinfo=timezone.utc)  # 45 min after NFP
     state = build_news_state(events, now, currencies=["USD"], post_event_minutes=30)
     assert state.blackout is False
+
+
+# --- fallback orchestration (FF -> TE -> None) ---
+
+_TE_EVENT = NewsEvent(time_utc=datetime(2026, 5, 28, 16, 30, tzinfo=timezone.utc),
+                      currency="USD", impact="High", title="Core PCE")
+
+
+def test_fallback_prefers_forexfactory(monkeypatch):
+    monkeypatch.setattr(nc, "fetch_calendar", lambda *a, **k: SAMPLE_XML)
+    result = fetch_with_fallback(te_api_key="guest:guest")
+    assert any(e.title == "Non-Farm Payrolls" for e in result)
+
+
+def test_fallback_uses_te_when_ff_fails(monkeypatch):
+    def boom(*a, **k):
+        raise RuntimeError("FF down")
+    monkeypatch.setattr(nc, "fetch_calendar", boom)
+    monkeypatch.setattr(nc, "fetch_calendar_te", lambda *a, **k: [_TE_EVENT])
+    result = fetch_with_fallback(te_api_key="guest:guest")
+    assert result == [_TE_EVENT]
+
+
+def test_fallback_returns_none_when_both_fail(monkeypatch):
+    def boom(*a, **k):
+        raise RuntimeError("down")
+    monkeypatch.setattr(nc, "fetch_calendar", boom)
+    monkeypatch.setattr(nc, "fetch_calendar_te", boom)
+    assert fetch_with_fallback(te_api_key="guest:guest") is None
