@@ -130,6 +130,45 @@ Notas:
 
 ---
 
+## Interpretação ICT — Guia de Análise
+
+Estes conceitos transformam o JSON em análise. Definições completas em `rules/ict_definitions.md`.
+
+**BOS vs CHOCH** (`structure.by_tf[].last_event`)
+- **BOS** (Break of Structure): continuação — close rompe o último swing NA MESMA direção do bias.
+  Ex: bias UP, close > último swing high = `BOS_UP` (alta confirmada).
+- **CHOCH** (Change of Character): inversão — close rompe o swing em direção OPOSTA ao bias anterior.
+  Mais significativo, exige cautela. Ex: bias DOWN, close > swing high = `CHOCH_UP`.
+- ⚠️ H1 `CHOCH_UP` com D1/H4 DOWN = possível reacumulação; NÃO confirmar LONG até o H4 confirmar.
+
+**FVG — Fair Value Gap** (`structure.fvg_active[]`)
+- Gap de 3 candles onde o fair value ainda não foi descoberto; o mercado tende a retornar.
+- O engine já filtra ruído (< 20% ATR). Bullish FVG = zona de compra (abaixo); bearish = venda (acima).
+- Entrada: operar quando o preço retorna ao FVG, na direção do bias.
+
+**Premium / Discount** (`liquidity.equilibrium`, `premium_zone`, `discount_zone`)
+- Equilíbrio = 50% do dealing range. Premium acima (zona de venda), Discount abaixo (zona de compra).
+- LONG preferível em Discount; SHORT preferível em Premium. Operar contra o bias na zona oposta
+  exige confluência forte (4+ categorias).
+
+**Draw on Liquidity (DoL)** (`liquidity.draw_direction`, `liquidity.pools[]`)
+- Para onde o mercado está sendo "drenado" — o pool mais próximo do preço define o draw imediato.
+- **BSL** (Buy Side Liquidity) = equal highs ACIMA (stops de compra). LONG busca BSL.
+- **SSL** (Sell Side Liquidity) = equal lows ABAIXO (stops de venda). SHORT busca SSL.
+- `draw_direction` pode divergir do bias HTF — é informação válida (busca de liquidez antes de continuar).
+
+**Erros do engine a sinalizar (não recomendar trade):**
+- LONG com `targets[0] <= entry_level` ou SHORT com `targets[0] >= entry_level` → inconsistência (o
+  engine deveria ter rejeitado em A5; se aparecer, SEM TRADE).
+- `news_state.blackout=true` com motivo genérico → sempre checar `blackout_reason`.
+
+**Quando recomendar cada decisão:**
+- **COMPRAR/VENDER**: setup válido + confluência ≥ 3 categorias + R:R ≥ 2 + sem blackout + zona favorável.
+- **AGUARDAR**: setup potencial mas confluência fraca, R:R < 2, fora da janela, ou estrutura em transição.
+- **SEM TRADE**: validator BLOCKED, blackout, target inconsistente, sem setup, ou margem FTMO crítica.
+
+---
+
 ## What This Claude CANNOT Do
 
 - Calculate levels (Python does that)
@@ -137,28 +176,32 @@ Notas:
 - Decide GO/BLOCKED (validator does that)
 - Suggest trade if JSON says BLOCKED
 - Create setups not in JSON
-- Ignore confluence, riskd, or stop quality
+- Ignore confluence, risk, or stop quality
 
 ---
 
 ## Key Fields to Always Check
 
 **From `validator_result`:**
-- `status` (GO or BLOCKED with reason)
-- `validator_failures` (all blocks)
+- `status` (GO or BLOCKED), `decision`, `failures[]`, `description`
 
 **From `account_snapshot`:**
-- `daily_pnl_pct`, `drawdown_pct`, `equity_pct_to_limit`
+- `daily_pnl_pct`, `drawdown_pct`, `balance`, `equity`
 
 **From `ftmo_limits`:**
 - `daily_margin_pct`, `total_margin_pct` (current space)
 
 **From `setup_candidates[0]` (if present):**
-- `model`, `direction`, `entry_level`, `stop`, `confluence_score`
-- `risk_units`, `reward_risk`
+- `model`, `direction`, `entry_level`, `stop`, `targets[]`, `confluence_factors[]`, `confluence_score`
+
+**From `risk_calculation` (if present):**
+- `reward_risk`, `stop_pips`, `reward_pips`, `lot_size`, `risk_amount`, `risk_pct`, `approved`, `reason`
 
 **From `structure`:**
-- `bias_d1_h4_h1`, `bos_choch_active`, `fvg_active`
+- `bias_d1_h4_h1`, `by_tf[].last_event`, `fvg_active[]`
+
+**From `liquidity`:**
+- `draw_direction`, `equilibrium`, `premium_zone`, `discount_zone`, `pools[]`, `target`
 
 ---
 
