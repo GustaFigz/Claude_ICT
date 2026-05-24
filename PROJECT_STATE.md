@@ -1,7 +1,8 @@
 # PROJECT_STATE — Ponto de Retoma
 
 > Save point único do projeto. Ler **isto primeiro** em cada sessão.
-> Última atualização: **2026-05-24**.
+> Última atualização: **2026-05-24** (Session 2).  
+> **Status:** All phases A-D implemented. 64 tests passing. EURUSD live verified. Ready for Phase 8 shadow trading.
 
 ---
 
@@ -16,12 +17,16 @@ inventar níveis nem ignorar bloqueios**. Execução manual.
 
 ---
 
-## 2. Estado atual — CÓDIGO IMPLEMENTADO E TESTADO
+## 2. Estado atual — CÓDIGO IMPLEMENTADO E TESTADO (TODAS AS FASES A-D)
 
-Motor determinístico construído e a correr **offline** (`data_mode=fixtures`). **35 testes passam.**
-O CLI corre end-to-end: `python -m cli.main analyze EURUSD --now 2026-05-26T14:30 --trend up`.
-O caminho **live** (`collect_live`, por injeção de dependências) está implementado, testado com
-fakes e ligado ao CLI — basta meter credenciais e mudar `data_mode` para `mt5`/`oanda`.
+Motor determinístico construído e **testado com 64 testes passando**. Todas as fases A-D implementadas:
+- **Fase A (bugs ICT):** ✓ BSL/SSL labels, CHOCH/BOS logic, draw_direction computation, FVG ATR filter, target validation
+- **Fase B (news resiliente):** ✓ Fail-safe blackout, Trading Economics fallback, retry+backoff, post-event window
+- **Fase C (Claude análise):** ✓ Relatório narrativo com pré-filtros, 5 categorias confluência, SKILL.md reescrito
+- **Fase D (ICT avançado):** ✓ OTE (Fib retracement), Order Blocks confluência, Sweep confirmation, Breakers, Multi-target (T1/T2/T3)
+
+CLI corre end-to-end: `python -m cli.main analyze EURUSD` (MT5 live) ou `python -m cli.main analyze EURUSD --trend up` (fixtures).
+O caminho **live** (`collect_live`, por injeção de dependências) testado com fakes e ligado ao CLI — basta meter credenciais e mudar `data_mode` para `mt5`/`oanda`.
 
 **Módulos:**
 - `data_pipeline/schemas.py` — contratos Pydantic; o JSON do Claude é um `AnalysisContext`.
@@ -82,13 +87,24 @@ intradiária (flutuante + swap + comissão). 1-Step (se mudares): 3% diário / 1
 
 ---
 
-## 6. Próximo passo (ponto de retoma)
+## 6. Próximo passo: PHASE 8 SHADOW TRADING (Ponto de Retoma)
 
-1. **Ligar dados live** (ver §4, primeiro item) e correr `analyze` contra MT5/OANDA; validar o JSON
-   contra o gráfico numa amostra.
-2. **Confirmar contrato do NAS100** (símbolo + valor por ponto) antes de qualquer sizing real.
-3. **Iniciar shadow (Fase 8):** correr nas janelas NY AM, registar em `logs/` e comparar com o
-   gráfico; afinar regras (não resultados).
+Todas as fases A-D estão completas e testadas. O próximo passo é validar se as melhorias em Phase D 
+genuinamente melhoram o edge através de shadow trading.
 
-> Teste de retoma: ler este ficheiro + `ANALISE_CRITICA_E_PLANO.md` basta para continuar.
-> Correr o que existe: `python -m pytest -q` e `python -m cli.main analyze EURUSD --now <ISO> --trend up`.
+**Imediato:**
+1. Ler `PHASE_8_SHADOW_TRADING.md` (guia completo de como começar)
+2. Confirmar contrato do NAS100 (símbolo + pip_value_per_lot no seu broker)
+3. Começar a correr `/analyze` durante janelas NY AM Silver Bullet (10:00–11:00 NY)
+4. Registar em `logs/trades.md` cada análise (trade ou skip)
+5. Após 30+ setups (2-4 semanas): avaliar se Phase D signals (OTE, sweep, breakers) correlacionam com wins
+
+**Validação esperada:**
+- Win rate ≥ 50% em setups Phase D
+- R médio ≥ 1.5 (cada trade vencedor paga 1.5x risco)
+- Nenhuma perda sistemática de novos sinais
+
+Ler `PHASE_8_SHADOW_TRADING.md` para fluxo detalhado, pré-checklist, e decisão go/no-go.
+
+> Teste de retoma: `python -m pytest -q` (64 testes), depois ler `PHASE_8_SHADOW_TRADING.md`.
+> Começar: `python -m cli.main analyze EURUSD` durante NY AM window.
