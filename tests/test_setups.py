@@ -34,3 +34,20 @@ def test_no_candidate_when_sideways():
     setup = build_silver_bullet(structure, Liquidity(), SessionState(),
                                 [], [c(0, 1.1, 1.1, 1.1, 1.1)], EURUSD)
     assert setup is None
+
+
+def test_rejects_long_with_target_below_entry():
+    # LONG bias but no pool above entry and the premium-zone top falls below entry:
+    # target would land below entry -> candidate must be rejected (reproduces the
+    # bad-R:R fixture bug), not emitted.
+    structure = _structure_up()
+    liquidity = Liquidity(
+        pools=[LiquidityPool(kind="SSL", price=1.0950, touches=2)],
+        draw_direction="UP",
+        premium_zone=(1.0900, 1.0950),  # top 1.0950 < entry 1.0990
+    )
+    session = SessionState(active_session="ny_am_silver_bullet", in_entry_window=True)
+    fvgs = [FVG(kind="bullish", bottom=1.0980, top=1.0990, time=_T, size_pips=10, filled=False)]
+    entry_candles = [c(0, 1.0995, 1.1005, 1.0990, 1.1000)]
+    setup = build_silver_bullet(structure, liquidity, session, fvgs, entry_candles, EURUSD)
+    assert setup is None

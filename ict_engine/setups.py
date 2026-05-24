@@ -49,6 +49,13 @@ def build_silver_bullet(
         pools_below = [p.price for p in liquidity.pools if p.price < entry]
         target = max(pools_below) if pools_below else (liquidity.discount_zone[0] if liquidity.discount_zone else price - (stop - entry) * 2)
 
+    # Target must lie in the trade's direction; otherwise the candidate is incoherent
+    # (e.g. a LONG whose only liquidity sits below entry). Reject rather than emit a bad R:R.
+    if direction == "LONG" and target <= entry:
+        return None
+    if direction == "SHORT" and target >= entry:
+        return None
+
     factors: list[str] = [f"HTF bias {bias}", f"Active {fvg.kind} FVG ({fvg.size_pips} pips)"]
     if session_state.in_entry_window:
         factors.append(f"Silver Bullet window ({session_state.active_session})")
