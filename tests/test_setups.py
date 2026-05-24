@@ -2,7 +2,9 @@ from datetime import datetime, timezone
 
 from _util import c
 
-from data_pipeline.schemas import FVG, Liquidity, LiquidityPool, SessionState, Structure, StructureTF
+from data_pipeline.schemas import (
+    FVG, Liquidity, LiquidityPool, OrderBlock, SessionState, Structure, StructureTF,
+)
 from ict_engine.setups import _ote_zone, build_silver_bullet
 
 EURUSD = {"pip_size": 0.0001}
@@ -60,6 +62,35 @@ def test_entry_in_ote_adds_confluence():
     assert setup.entry_in_ote is True
     assert setup.ote_zone is not None
     assert any("OTE" in f for f in setup.confluence_factors)
+
+
+def test_order_block_adds_confluence():
+    structure = _structure_up()
+    liquidity = Liquidity(pools=[LiquidityPool(kind="BSL", price=1.1050, touches=2)],
+                          draw_direction="UP")
+    session = SessionState(active_session="ny_am_silver_bullet", in_entry_window=True)
+    fvgs = [FVG(kind="bullish", bottom=1.0980, top=1.0990, time=_T, size_pips=10, filled=False)]
+    entry_candles = [c(0, 1.0995, 1.1005, 1.0990, 1.1000)]
+    # bullish OB whose range contains the entry (1.0990)
+    obs = [OrderBlock(kind="bullish", bottom=1.0985, top=1.0995, time=_T, mitigated=False)]
+    setup = build_silver_bullet(structure, liquidity, session, fvgs, entry_candles, EURUSD,
+                                order_blocks=obs)
+    assert setup is not None
+    assert any("Order Block" in f for f in setup.confluence_factors)
+
+
+def test_mitigated_order_block_not_counted():
+    structure = _structure_up()
+    liquidity = Liquidity(pools=[LiquidityPool(kind="BSL", price=1.1050, touches=2)],
+                          draw_direction="UP")
+    session = SessionState(active_session="ny_am_silver_bullet", in_entry_window=True)
+    fvgs = [FVG(kind="bullish", bottom=1.0980, top=1.0990, time=_T, size_pips=10, filled=False)]
+    entry_candles = [c(0, 1.0995, 1.1005, 1.0990, 1.1000)]
+    obs = [OrderBlock(kind="bullish", bottom=1.0985, top=1.0995, time=_T, mitigated=True)]
+    setup = build_silver_bullet(structure, liquidity, session, fvgs, entry_candles, EURUSD,
+                                order_blocks=obs)
+    assert setup is not None
+    assert not any("Order Block" in f for f in setup.confluence_factors)
 
 
 def test_rejects_long_with_target_below_entry():

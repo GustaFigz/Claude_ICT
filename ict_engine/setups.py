@@ -5,6 +5,7 @@ from data_pipeline.schemas import (
     Candle,
     FVG,
     Liquidity,
+    OrderBlock,
     SessionState,
     SetupCandidate,
     Structure,
@@ -36,6 +37,7 @@ def build_silver_bullet(
     entry_fvgs: list[FVG],
     entry_candles: list[Candle],
     symbol_cfg: dict,
+    order_blocks: list[OrderBlock] | None = None,
 ) -> SetupCandidate | None:
     bias = structure.bias_d1_h4_h1
     if bias not in {"UP", "DOWN"} or not entry_candles:
@@ -79,6 +81,13 @@ def build_silver_bullet(
         factors.append(f"Silver Bullet window ({session_state.active_session})")
     if liquidity.draw_direction:
         factors.append(f"Draw on liquidity {liquidity.draw_direction}")
+
+    # Order Block confluence: an unmitigated OB of the matching kind containing the entry.
+    ob_kind = "bullish" if direction == "LONG" else "bearish"
+    for ob in (order_blocks or []):
+        if ob.kind == ob_kind and not ob.mitigated and ob.bottom <= entry <= ob.top:
+            factors.append(f"Entry at {ob_kind} Order Block")
+            break
 
     # OTE: does entry fall in the 61.8-79% retracement of the H1 displacement leg?
     h1 = structure.by_tf.get("H1")

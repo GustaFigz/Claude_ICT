@@ -128,7 +128,9 @@ def build_context(
     )
 
     # --- setup + risk ---
-    setup = setup_mod.build_silver_bullet(structure, liquidity, session, entry_fvgs, entry_candles, symbol_cfg)
+    order_blocks = liq.detect_order_blocks(entry_candles, pip_size) if entry_candles else []
+    setup = setup_mod.build_silver_bullet(structure, liquidity, session, entry_fvgs, entry_candles,
+                                          symbol_cfg, order_blocks=order_blocks)
     setups = [setup] if setup else []
     risk_calc = risk_mod.evaluate_risk(setup, symbol_cfg, account_cfg, snapshot) if setup else None
     if setup and liquidity.draw_direction:
