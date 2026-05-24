@@ -32,6 +32,12 @@ def get_candles(symbol: str, tf: str, count: int) -> list[Candle]:
     mt5 = _require_mt5()
     tf_const = getattr(mt5, f"TIMEFRAME_{_TF_MAP[tf]}")
     rates = mt5.copy_rates_from_pos(symbol, tf_const, 0, count)
+    if rates is None or len(rates) == 0:
+        raise RuntimeError(
+            f"MT5 returned no candles for '{symbol}' ({tf}). Check the broker symbol is exact and "
+            f"visible in Market Watch (last_error={mt5.last_error()}). Indices vary by broker "
+            f"(e.g. US100 / USTEC / NDX) - set broker_symbol in config/symbols.yaml."
+        )
     out = []
     for r in rates:
         out.append(Candle(
