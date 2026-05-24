@@ -51,10 +51,14 @@ def detect_order_blocks(candles: list[Candle], pip_size: float, displacement_pip
 
 
 def detect_pools(swings: list[SwingPoint], pip_size: float, tol_pips: float = 2.0) -> list[LiquidityPool]:
-    """Equal highs (SSL above) / equal lows (BSL below) clustered within tolerance."""
+    """Equal highs (BSL above) / equal lows (SSL below) clustered within tolerance.
+
+    BSL = Buy Side Liquidity: cluster of equal highs above the market (buy stops rest here).
+    SSL = Sell Side Liquidity: cluster of equal lows below the market (sell stops rest here).
+    """
     tol = tol_pips * pip_size
     pools: list[LiquidityPool] = []
-    for kind, sp_kind, pool_kind in (("high", "high", "SSL"), ("low", "low", "BSL")):
+    for kind, sp_kind, pool_kind in (("high", "high", "BSL"), ("low", "low", "SSL")):
         pts = sorted((s.price for s in swings if s.kind == sp_kind))
         i = 0
         while i < len(pts):

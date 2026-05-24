@@ -123,7 +123,8 @@ def build_context(
     setups = [setup] if setup else []
     risk_calc = risk_mod.evaluate_risk(setup, symbol_cfg, account_cfg, snapshot) if setup else None
     if setup and liquidity.draw_direction:
-        kind = "BSL" if structure.bias_d1_h4_h1 == "DOWN" else "SSL"
+        # DOWN bias targets sell-side liquidity below (SSL); UP targets buy-side above (BSL).
+        kind = "SSL" if structure.bias_d1_h4_h1 == "DOWN" else "BSL"
         if setup.targets:
             liquidity.target = f"{kind} @ {setup.targets[0]}"
 

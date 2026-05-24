@@ -31,8 +31,12 @@ def test_pools_equal_highs_and_lows():
         SwingPoint(index=3, time=t(3), price=90.0, kind="low"),
     ]
     pools = detect_pools(swings, PIP, tol_pips=2.0)
-    kinds = {p.kind for p in pools}
-    assert "SSL" in kinds and "BSL" in kinds
+    by_kind = {p.kind: p for p in pools}
+    assert "BSL" in by_kind and "SSL" in by_kind
+    # Equal highs -> BSL (above market); equal lows -> SSL (below market)
+    assert by_kind["BSL"].price > by_kind["SSL"].price
+    assert by_kind["BSL"].price == 100.5  # mean of 100, 101
+    assert by_kind["SSL"].price == 90.0   # mean of 90, 90
 
 
 def test_premium_discount():
