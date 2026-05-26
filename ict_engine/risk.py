@@ -42,6 +42,7 @@ def evaluate_risk(
 
     risk_pct = float(account_cfg["risk_per_trade_pct"])
     min_rr = float(account_cfg["min_rr_ratio"])
+    min_rr_warn = float(account_cfg.get("min_rr_ratio_warn", min_rr))
     base = snapshot.balance or float(account_cfg["initial_capital"])
     risk_amount = base * risk_pct / 100.0
 
@@ -52,6 +53,7 @@ def evaluate_risk(
 
     reason = None
     approved = True
+    warn_only = False
     lot = 0.0
     if stop_pips < min_stop_pips:
         approved, reason = False, f"stop too tight ({stop_pips:.1f} < {min_stop_pips} pips)"
@@ -64,7 +66,12 @@ def evaluate_risk(
         elif lot > max_lot:
             approved, reason = False, f"required lot {lot} above max {max_lot}"
         elif rr < min_rr - 1e-9:
-            approved, reason = False, f"reward:risk {rr:.2f} < min {min_rr}"
+            if rr >= min_rr_warn - 1e-9:
+                # Warn zone: R:R is marginal but not catastrophic. Show as AGUARDAR, not BLOCKED.
+                approved, reason, warn_only = False, f"reward:risk {rr:.2f} marginal (warn zone {min_rr_warn:.1f}–{min_rr:.1f})", True
+            else:
+                # Below warn zone: hard fail, BLOCKED
+                approved, reason = False, f"reward:risk {rr:.2f} < min {min_rr}"
 
     return RiskCalculation(
         risk_pct=risk_pct,
@@ -75,4 +82,5 @@ def evaluate_risk(
         lot_size=lot,
         approved=approved,
         reason=reason,
+        warn_only=warn_only,
     )

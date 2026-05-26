@@ -12,7 +12,7 @@ symbols:
     oanda_symbol: "EUR_USD"
     correlation_pair: "DXY"
     news_currencies: ["EUR", "USD"]
-    news_blackout_minutes: 90     # block this many min before a high-impact event
+    news_blackout_minutes: 60     # block this many min before a high-impact event (industry standard 30-60 min)
     timeframes: [MN, W1, D1, H4, H1, M15, M5, M1]
     digits: 5
     pip_size: 0.0001              # 1 pip
@@ -26,7 +26,7 @@ symbols:
   NAS100:
     enabled: true
     asset_class: "index_cfd"
-    broker_symbol: "NAS100"       # may be USTEC / US100 / NDX depending on broker — CONFIRM
+    broker_symbol: "US100.cash"   # may be USTEC / US100 / NDX depending on broker — CONFIRM
     oanda_symbol: "NAS100_USD"
     correlation_pair: "US500"
     news_currencies: ["USD"]      # index reacts to US macro (FOMC, NFP, CPI)
@@ -40,6 +40,24 @@ symbols:
     max_lot: 20.0
     min_stop_pips: 30             # index points
     sessions: [ny_am_silver_bullet, ny_pm_silver_bullet]
+
+  NZDUSD:
+    enabled: true
+    asset_class: "forex"
+    broker_symbol: "NZDUSD"
+    oanda_symbol: "NZD_USD"
+    correlation_pair: "DXY"
+    news_currencies: ["NZD", "USD"]
+    news_blackout_minutes: 60
+    timeframes: [MN, W1, D1, H4, H1, M15, M5, M1]
+    digits: 5
+    pip_size: 0.0001
+    pip_value_per_lot: 10.0
+    min_lot: 0.01
+    lot_step: 0.01
+    max_lot: 50.0
+    min_stop_pips: 8
+    sessions: [ny_am_silver_bullet, london_open]
 
   GBPUSD:
     enabled: false

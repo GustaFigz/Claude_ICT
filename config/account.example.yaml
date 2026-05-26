@@ -26,11 +26,15 @@ account:
   # Risk per trade
   risk_per_trade_pct: 0.50       # default 0.5% of account per trade
   max_risk_per_trade_pct: 1.0
-  min_rr_ratio: 2.0              # minimum reward:risk
+  min_rr_ratio: 2.0              # hard floor: R:R below this blocks trade
+  min_rr_ratio_warn: 1.5         # warn zone: R:R in [1.5–2.0) shows as AGUARDAR, not BLOCKED
 
   # Session rules
   max_trades_per_day: 3
-  max_consecutive_losses: 2      # stop after N losing trades in a day
+  max_consecutive_losses: 3      # stop after N losing trades in a day (3 × 0.5% = 1.5% max loss)
+
+  # Setup filtering
+  min_confluence: 2              # minimum confluence score to show a setup (was hardcoded 3)
 
   # Timezones
   timezone: "America/New_York"   # canonical trading time (Kill Zones)

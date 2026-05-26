@@ -145,7 +145,7 @@ def build_context(
     from ict_engine.validator import validate
     result = validate(
         data_quality, snapshot, ftmo, session, news_state, setups, risk_calc, account_cfg,
-        min_confluence=3,
+        min_confluence=int(account_cfg.get("min_confluence", 3)),
     )
 
     return AnalysisContext(

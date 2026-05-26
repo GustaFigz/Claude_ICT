@@ -117,6 +117,7 @@ class RiskCalculation(BaseModel):
     lot_size: float
     approved: bool
     reason: Optional[str] = None
+    warn_only: bool = False  # True = marginal R:R (warn zone 1.5-2.0), show as AGUARDAR not BLOCKED
 
 
 class AccountSnapshot(BaseModel):
@@ -172,6 +173,7 @@ class ValidatorResult(BaseModel):
     decision: Decision
     failures: list[str] = Field(default_factory=list)
     description: Optional[str] = None
+    setup_preview: Optional[str] = None  # human-readable setup summary when AGUARDAR has partial setup
 
 
 class AnalysisContext(BaseModel):

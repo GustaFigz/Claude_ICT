@@ -64,8 +64,13 @@ def validate(
 
     # 4. Session timing
     if not session.in_entry_window:
+        best_preview = max(setups, key=lambda s: s.confluence_score, default=None)
+        preview = ""
+        if best_preview:
+            preview = (f" Setup found: {best_preview.model} {best_preview.direction} "
+                      f"score={best_preview.confluence_score}. Wait for session.")
         return ValidatorResult(status=Status.GO, decision=Decision.AGUARDAR,
-                               description=f"Outside entry window. Next: {session.next_window}.")
+                               description=f"Outside entry window. Next: {session.next_window}.{preview}")
 
     # 5. Setup presence + confluence
     best = max(setups, key=lambda s: s.confluence_score, default=None)
@@ -73,12 +78,26 @@ def validate(
         return ValidatorResult(status=Status.GO, decision=Decision.AGUARDAR,
                                description="No setup candidate.")
     if best.confluence_score < min_confluence:
+        factors_summary = ", ".join(best.confluence_factors) if best.confluence_factors else "none"
         return ValidatorResult(status=Status.GO, decision=Decision.AGUARDAR,
                                failures=[f"confluence {best.confluence_score} < {min_confluence}"],
-                               description="Insufficient confluence.")
+                               description=(f"Partial setup found ({best.model} {best.direction}, "
+                                          f"score={best.confluence_score}/{min_confluence}). "
+                                          f"Factors: {factors_summary}. Needs more confluence."),
+                               setup_preview=(f"{best.model} {best.direction} @{best.entry_level} "
+                                            f"| stop={best.stop} | target={best.targets[0] if best.targets else '?'}"))
 
     # 6. Risk approval
     if risk is None or not risk.approved:
+        if risk is not None and risk.warn_only:
+            # Marginal R:R (warn zone): show setup as AGUARDAR, not BLOCKED
+            return ValidatorResult(status=Status.GO, decision=Decision.AGUARDAR,
+                                   failures=[risk.reason or "marginal reward:risk"],
+                                   description=(f"R:R marginal ({risk.reward_risk:.2f}). "
+                                             f"Setup visible; wait for better entry or confirmed confluence."),
+                                   setup_preview=(f"{best.model} {best.direction} @{best.entry_level} "
+                                               f"| stop={best.stop} | target={best.targets[0] if best.targets else '?'} "
+                                               f"| R:R={risk.reward_risk:.2f}"))
         return ValidatorResult(status=Status.BLOCKED, decision=Decision.SEM_TRADE,
                                failures=[risk.reason if risk else "no risk calculation"],
                                description="Risk/RR gate failed.")
