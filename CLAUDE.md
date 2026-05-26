@@ -60,8 +60,8 @@ If no symbol is specified, the skill will ask which one. If the user simply past
 3. **Verify account risk** (drawdown, equity, daily loss margin)
 4. **Read market context** (bias, session, news, liquidty areas)
 5. **Interpret setup candidate** (if present)
-   - Check confluence: min 3 ICT factors
-   - Verify R:R (min 2R), position size, stop quality
+   - Check confluence: min N ICT factors (N = `min_confluence` in account.yaml, currently **2**)
+   - Verify R:R (hard floor 2R; warn zone 1.5–2.0 → AGUARDAR not blocked), position size, stop quality
    - Validate risk fits daily/account limit
 6. **Output report** (fixed format below)
 
@@ -121,7 +121,7 @@ Risco:
 Validação Final:
 - JSON status: GO ✓
 - Risco FTMO: OK ✓
-- Confluência mínima: [3+ factors]
+- Confluência mínima: [N+ factors, N = account_cfg.min_confluence]
 - [Additional checks from validator]
 
 Notas:
@@ -163,9 +163,10 @@ Estes conceitos transformam o JSON em análise. Definições completas em `rules
 - `news_state.blackout=true` com motivo genérico → sempre checar `blackout_reason`.
 
 **Quando recomendar cada decisão:**
-- **COMPRAR/VENDER**: setup válido + confluência ≥ 3 categorias + R:R ≥ 2 + sem blackout + zona favorável.
-- **AGUARDAR**: setup potencial mas confluência fraca, R:R < 2, fora da janela, ou estrutura em transição.
-- **SEM TRADE**: validator BLOCKED, blackout, target inconsistente, sem setup, ou margem FTMO crítica.
+- **COMPRAR/VENDER**: setup válido + confluência ≥ `min_confluence` (config, default **2**) + R:R ≥ 2.0 + sem blackout + zona favorável.
+- **AGUARDAR**: setup potencial mas confluência fraca, R:R em warn zone [1.5–2.0), fora da janela, ou estrutura em transição. `setup_preview` sempre preenchido para que o trader veja o nível.
+- **SEM TRADE**: validator BLOCKED, blackout, R:R < 1.5 (hard floor), target inconsistente, sem setup, ou margem FTMO crítica.
+- **news_blackout_minutes**: 60 min para EURUSD/NAS100 (configurável em symbols.yaml, não hardcoded).
 
 ---
 
@@ -183,7 +184,7 @@ Estes conceitos transformam o JSON em análise. Definições completas em `rules
 ## Key Fields to Always Check
 
 **From `validator_result`:**
-- `status` (GO or BLOCKED), `decision`, `failures[]`, `description`
+- `status` (GO or BLOCKED), `decision`, `failures[]`, `description`, `setup_preview` (non-null when AGUARDAR has a visible setup)
 
 **From `account_snapshot`:**
 - `daily_pnl_pct`, `drawdown_pct`, `balance`, `equity`
@@ -195,7 +196,7 @@ Estes conceitos transformam o JSON em análise. Definições completas em `rules
 - `model`, `direction`, `entry_level`, `stop`, `targets[]`, `confluence_factors[]`, `confluence_score`
 
 **From `risk_calculation` (if present):**
-- `reward_risk`, `stop_pips`, `reward_pips`, `lot_size`, `risk_amount`, `risk_pct`, `approved`, `reason`
+- `reward_risk`, `stop_pips`, `reward_pips`, `lot_size`, `risk_amount`, `risk_pct`, `approved`, `reason`, `warn_only` (true = R:R in warn zone → AGUARDAR, not blocked)
 
 **From `structure`:**
 - `bias_d1_h4_h1`, `by_tf[].last_event`, `fvg_active[]`

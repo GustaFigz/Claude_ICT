@@ -51,7 +51,8 @@ def collect_live(
     candles (no forming candle). Account state should come from the FTMO broker (MT5).
     """
     now_utc = now_utc or datetime.now(timezone.utc)
-    tf_candles = {tf: get_candles(tf, count) for tf, count in ENGINE_TF.items()}
+    tf_counts = {**ENGINE_TF, **symbol_cfg.get("candle_counts", {})}
+    tf_candles = {tf: get_candles(tf, count) for tf, count in tf_counts.items()}
 
     secondary_m5 = get_secondary_candles("M5", ENGINE_TF["M5"]) if get_secondary_candles else None
     data_quality = build_data_quality(
@@ -63,6 +64,7 @@ def collect_live(
     news_state = build_news_state(
         news_events, now_utc, symbol_cfg.get("news_currencies", []),
         blackout_minutes=symbol_cfg.get("news_blackout_minutes", 90),
+        post_event_minutes=int(symbol_cfg.get("news_post_event_minutes", 30)),
     )
 
     snapshot = get_snapshot()
@@ -101,7 +103,7 @@ def build_context(
     h1 = tf_candles.get("H1", [])
     if h1:
         swings = detect_swings(h1, 2)
-        liquidity.pools = liq.detect_pools(swings, pip_size)
+        liquidity.pools = liq.detect_pools(swings, pip_size, tol_pips=float(symbol_cfg.get("pool_tol_pips", 2.0)))
     d1 = tf_candles.get("D1", [])
     if d1:
         eq, prem, disc = liq.premium_discount(d1)
@@ -116,7 +118,7 @@ def build_context(
     # Filter out noise: keep only gaps >= 20% of ATR (ICT displacement threshold).
     entry_candles = tf_candles.get("M5", []) or h1
     if entry_candles:
-        min_fvg_pips = 0.20 * liq.atr_pips(entry_candles, pip_size)
+        min_fvg_pips = float(symbol_cfg.get("fvg_atr_multiplier", 0.20)) * liq.atr_pips(entry_candles, pip_size)
         entry_fvgs = liq.detect_fvg(entry_candles, pip_size, min_pips=min_fvg_pips)
     else:
         entry_fvgs = []

@@ -20,7 +20,7 @@ def detect_swings(candles: list[Candle], n: int) -> list[SwingPoint]:
         right = candles[i + 1:i + 1 + n]
         if c.high > max(x.high for x in left) and c.high > max(x.high for x in right):
             swings.append(SwingPoint(index=i, time=c.time, price=c.high, kind="high"))
-        if c.low < min(x.low for x in left) and c.low < min(x.low for x in right):
+        elif c.low < min(x.low for x in left) and c.low < min(x.low for x in right):
             swings.append(SwingPoint(index=i, time=c.time, price=c.low, kind="low"))
     return swings
 

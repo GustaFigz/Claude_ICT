@@ -13,7 +13,7 @@ from data_pipeline.schemas import (
 
 # ICT Optimal Trade Entry: the 61.8%-79% retracement band of the displacement leg.
 _OTE_SHALLOW = 0.618
-_OTE_DEEP = 0.79
+_OTE_DEEP = 0.786
 
 
 def _ote_zone(low: float, high: float, direction: str) -> tuple[float, float] | None:
@@ -78,7 +78,7 @@ def build_silver_bullet(
     pip_size = float(symbol_cfg["pip_size"])
     price = entry_candles[-1].close
     direction = "LONG" if bias == "UP" else "SHORT"
-    buffer = 2 * pip_size
+    buffer = float(symbol_cfg.get("stop_buffer_pips", 2)) * pip_size
 
     if direction == "LONG":
         gaps = [f for f in entry_fvgs if f.kind == "bullish" and not f.filled and f.top <= price]

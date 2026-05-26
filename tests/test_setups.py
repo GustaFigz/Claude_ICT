@@ -41,9 +41,9 @@ def test_no_candidate_when_sideways():
 def test_ote_zone_long_and_short():
     # leg 1.0900 -> 1.1000, range 0.0100
     lo, hi = _ote_zone(1.0900, 1.1000, "LONG")
-    assert round(lo, 5) == 1.0921 and round(hi, 5) == 1.09382
+    assert round(lo, 5) == 1.09214 and round(hi, 5) == 1.09382
     lo, hi = _ote_zone(1.0900, 1.1000, "SHORT")
-    assert round(lo, 5) == 1.09618 and round(hi, 5) == 1.0979
+    assert round(lo, 5) == 1.09618 and round(hi, 5) == 1.09786
     assert _ote_zone(1.10, 1.10, "LONG") is None  # degenerate leg
 
 

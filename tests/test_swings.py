@@ -27,3 +27,14 @@ def test_detects_single_swing_low():
     assert len(sw) == 1
     assert sw[0].kind == "low"
     assert last_swing(sw, "low").price == 5
+
+
+def test_no_simultaneous_high_and_low():
+    # Candle[2] is both the highest high AND the lowest low.
+    # The elif fix ensures only the swing high is recorded, not both.
+    highs = [10, 11, 15, 11, 10]
+    lows  = [ 9,  8,  4,  8,  9]
+    candles = [c(i, lows[i], highs[i], lows[i], lows[i]) for i in range(5)]
+    sw = detect_swings(candles, n=2)
+    indices = [s.index for s in sw]
+    assert len(indices) == len(set(indices)), "Same candle registered as both swing high and low"

@@ -42,15 +42,10 @@ def _mark_filled(fvgs: list[FVG], candles: list[Candle]) -> None:
         for c in candles:
             if c.time <= f.time:
                 continue
-            if c.low <= f.bottom and c.high >= f.top:
-                f.filled = True
-                break
-            if f.kind == "bullish" and c.low <= f.bottom:
-                f.filled = True
-                break
-            if f.kind == "bearish" and c.high >= f.top:
-                f.filled = True
-                break
+            if f.kind == "bullish" and c.close <= f.bottom:
+                f.filled = True; break
+            if f.kind == "bearish" and c.close >= f.top:
+                f.filled = True; break
 
 
 def detect_order_blocks(candles: list[Candle], pip_size: float, displacement_pips: float = 0.0) -> list[OrderBlock]:

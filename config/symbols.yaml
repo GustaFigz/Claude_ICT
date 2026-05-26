@@ -13,6 +13,10 @@ symbols:
     correlation_pair: "DXY"
     news_currencies: ["EUR", "USD"]
     news_blackout_minutes: 60     # block this many min before a high-impact event (industry standard 30-60 min)
+    news_post_event_minutes: 30   # block after high-impact event fires
+    fvg_atr_multiplier: 0.20      # min FVG size = this fraction of ATR (filters noise)
+    stop_buffer_pips: 2           # buffer added beyond swing low/high for stop placement
+    pool_tol_pips: 2.0            # how close two swing highs/lows must be to form a pool
     timeframes: [MN, W1, D1, H4, H1, M15, M5, M1]
     digits: 5
     pip_size: 0.0001              # 1 pip
@@ -31,6 +35,10 @@ symbols:
     correlation_pair: "US500"
     news_currencies: ["USD"]      # index reacts to US macro (FOMC, NFP, CPI)
     news_blackout_minutes: 60     # indices: shorter pre-event window
+    news_post_event_minutes: 30
+    fvg_atr_multiplier: 0.20
+    stop_buffer_pips: 2
+    pool_tol_pips: 30.0           # index: wider tolerance for equal highs/lows (points, not pips)
     timeframes: [MN, W1, D1, H4, H1, M15, M5, M1]
     digits: 1
     pip_size: 1.0                 # 1 index point
@@ -49,6 +57,10 @@ symbols:
     correlation_pair: "DXY"
     news_currencies: ["NZD", "USD"]
     news_blackout_minutes: 60
+    news_post_event_minutes: 30
+    fvg_atr_multiplier: 0.20
+    stop_buffer_pips: 2
+    pool_tol_pips: 2.0
     timeframes: [MN, W1, D1, H4, H1, M15, M5, M1]
     digits: 5
     pip_size: 0.0001
@@ -66,6 +78,10 @@ symbols:
     oanda_symbol: "GBP_USD"
     correlation_pair: "DXY"
     news_currencies: ["GBP", "USD"]
+    news_post_event_minutes: 30
+    fvg_atr_multiplier: 0.20
+    stop_buffer_pips: 2
+    pool_tol_pips: 2.0
     timeframes: [MN, W1, D1, H4, H1, M15, M5, M1]
     digits: 5
     pip_size: 0.0001

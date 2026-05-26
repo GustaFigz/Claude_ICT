@@ -43,3 +43,13 @@ def test_risk_rejected_low_rr():
                            entry_level=1.1000, stop=1.0950, targets=[1.1075])
     r = evaluate_risk(setup, EURUSD, ACCOUNT, _snap())
     assert r.approved is False and "reward:risk" in (r.reason or "")
+
+
+def test_zero_balance_hard_fails():
+    snap = AccountSnapshot(balance=0.0, equity=0.0, daily_pnl_pct=0.0, drawdown_pct=0.0)
+    setup = SetupCandidate(model="silver_bullet", direction="LONG",
+                           entry_level=1.1000, stop=1.0950, targets=[1.1100])
+    r = evaluate_risk(setup, EURUSD, ACCOUNT, snap)
+    assert r.approved is False
+    assert r.warn_only is False
+    assert "zero" in (r.reason or "").lower()

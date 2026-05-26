@@ -271,6 +271,26 @@ python -m cli.main analyze EURUSD
 
 **Phase 10 (FTMO Real):** After Phase 9 validates on real capital with pressure
 
+---
+
+## Appendix: Rule Relaxation Active (Sprint 1 — May 2026)
+
+The following changes are live in the current system. They make setups **visible without removing FTMO protection**:
+
+| Config | Old value | New value | Effect |
+|--------|-----------|-----------|--------|
+| `min_confluence` | 3 (hardcoded) | **2** (YAML) | Shows marginal setups as AGUARDAR |
+| `min_rr_ratio_warn` | — | **1.5** | R:R 1.5–2.0 → AGUARDAR (not BLOCKED) |
+| `min_rr_ratio` | 2.0 | **2.0** (hard floor) | Below 1.5 → still BLOCKED |
+| `max_consecutive_losses` | 2 | **3** | 3 × 0.5% = 1.5% max daily from losses |
+| `news_blackout_minutes` | 90 | **60** | EURUSD/NAS100 (config, not hardcoded) |
+
+**Phase 9 produces two new JSON fields:**
+- `validator_result.setup_preview` — human-readable setup summary when decision is AGUARDAR; always report this to the trader so even marginal setups are visible.
+- `risk_calculation.warn_only` — `true` when R:R is in the warn zone [1.5–2.0); treat as "consider entry at better level, don't force."
+
+All changes are **backward-compatible**: 72 tests passing. Default behaviors unchanged when config fields are absent.
+
 **If Phase 8 finds issues:** Fix in code, return to Phase 8 for re-validation.
 
 ---

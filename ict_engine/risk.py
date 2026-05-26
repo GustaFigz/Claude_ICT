@@ -43,7 +43,13 @@ def evaluate_risk(
     risk_pct = float(account_cfg["risk_per_trade_pct"])
     min_rr = float(account_cfg["min_rr_ratio"])
     min_rr_warn = float(account_cfg.get("min_rr_ratio_warn", min_rr))
-    base = snapshot.balance or float(account_cfg["initial_capital"])
+    if snapshot.balance <= 0:
+        return RiskCalculation(
+            risk_pct=0.0, risk_amount=0.0, stop_pips=0.0, reward_pips=0.0,
+            reward_risk=0.0, lot_size=0.0, approved=False,
+            reason="account balance zero or negative", warn_only=False,
+        )
+    base = snapshot.balance
     risk_amount = base * risk_pct / 100.0
 
     stop_pips = abs(setup.entry_level - setup.stop) / pip_size

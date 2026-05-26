@@ -1,7 +1,10 @@
+from datetime import datetime, timezone
+
 from _util import c
 
-from data_pipeline.schemas import LiquidityPool, SwingPoint
+from data_pipeline.schemas import FVG, LiquidityPool, SwingPoint
 from ict_engine.liquidity import (
+    _mark_filled,
     atr_pips,
     compute_draw_direction,
     detect_breakers,
@@ -10,6 +13,8 @@ from ict_engine.liquidity import (
     detect_pools,
     premium_discount,
 )
+
+_FVG_TIME = datetime(2026, 5, 26, 0, 0, tzinfo=timezone.utc)
 
 PIP = 1.0
 
@@ -100,3 +105,27 @@ def test_fvg_min_pips_filters_small_gaps():
     candles = [c(0, 9, 10, 8, 9), c(1, 10, 11, 9, 10.5), c(2, 12.5, 13, 12, 12.5)]
     assert len(detect_fvg(candles, PIP, min_pips=0.0)) == 1  # 2-pip gap kept
     assert detect_fvg(candles, PIP, min_pips=5.0) == []      # 2-pip gap filtered
+
+
+def test_fvg_not_filled_by_wick():
+    # wick below bullish FVG bottom but close is inside → not filled (ICT: filled = close through)
+    fvg = FVG(kind="bullish", bottom=10.0, top=12.0, time=_FVG_TIME, size_pips=20)
+    candles = [c(1, 11.0, 12.5, 9.0, 11.0)]  # low=9 < 10 (wick), close=11 (inside gap)
+    _mark_filled([fvg], candles)
+    assert fvg.filled is False
+
+
+def test_fvg_filled_by_close_below():
+    # close below bullish FVG bottom → filled
+    fvg = FVG(kind="bullish", bottom=10.0, top=12.0, time=_FVG_TIME, size_pips=20)
+    candles = [c(1, 11.0, 12.5, 8.0, 9.0)]  # close=9 < bottom=10
+    _mark_filled([fvg], candles)
+    assert fvg.filled is True
+
+
+def test_bearish_fvg_not_filled_by_wick():
+    # wick above bearish FVG top but close is inside → not filled
+    fvg = FVG(kind="bearish", bottom=10.0, top=12.0, time=_FVG_TIME, size_pips=20)
+    candles = [c(1, 11.0, 13.0, 9.5, 11.0)]  # high=13 > top=12 (wick), close=11 (inside)
+    _mark_filled([fvg], candles)
+    assert fvg.filled is False
