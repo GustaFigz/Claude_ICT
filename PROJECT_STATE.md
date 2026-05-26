@@ -1,8 +1,8 @@
 # PROJECT_STATE — Ponto de Retoma
 
 > Save point único do projeto. Ler **isto primeiro** em cada sessão.
-> Última atualização: **2026-05-26** (Session 4 — Phase 8 Live).  
-> **Status:** Phases A-D + Rule Relaxation (Phase 9) complete. 64 tests passing. System ready for shadow trading with relaxed rules.
+> Última atualização: **2026-05-26** (Session 5 — Sprint 1 complete).  
+> **Status:** Phases A-D + Phase 9 + Sprint 1 bug fixes complete. **72 tests passing**. 4 silent bugs fixed, 5 values configurable, CLAUDE.md updated.
 
 ---
 
@@ -63,7 +63,24 @@ Fases 8–10 (shadow → demo → FTMO real) — **operacionais, dependem de dad
 
 ---
 
-## 4. Novo em Phase 9 — Relaxação de Regras (✓ Implementado)
+## 4. Sprint 1 — Bugs Críticos + Testes + Docs (✓ Concluído 2026-05-26)
+
+**4 bugs silenciosos corrigidos:**
+- ✓ `liquidity.py::_mark_filled()` → FVG filled por CLOSE não wick (ICT correto)
+- ✓ `setups.py::_OTE_DEEP` → 0.786 em vez de 0.79 (Fibonacci 78.6% correto)
+- ✓ `swings.py::detect_swings()` → `elif` impede mesmo candle como swing high+low
+- ✓ `risk.py::evaluate_risk()` → `balance=0` hard-fails em vez de fallback silencioso
+
+**5 valores configuráveis via YAML** (defaults iguais = comportamento inalterado):
+- `fvg_atr_multiplier`, `stop_buffer_pips`, `pool_tol_pips`, `news_post_event_minutes`, `candle_counts`
+
+**8 novos testes:** 64 → **72 passando**
+
+**CLAUDE.md atualizado:** thresholds Phase 9 corretos (`min_confluence=2`, warn zone 1.5-2.0, `news_blackout=60min`)
+
+---
+
+## 4b. Novo em Phase 9 — Relaxação de Regras (✓ Implementado)
 
 **2026-05-26 — Rule Relaxation Complete:**
 - ✓ `min_confluence` configurável via YAML (era hardcoded 3, agora padrão 2)
@@ -76,7 +93,19 @@ Fases 8–10 (shadow → demo → FTMO real) — **operacionais, dependem de dad
 
 **Implicação:** Sistema agora mostra oportunidades (mesmo marginais) sem sacrificar proteção FTMO.
 
-## 5. Pendente / questões em aberto
+## 5. Próximo — Sprint 2 (Engine + Qualidade)
+
+Itens de maior impacto por ordem de prioridade:
+- [ ] **S2-10: Consolidar CLAUDE.md** (~228 → ~110 linhas, -600-800 tokens/sessão)
+- [ ] **S2-9: Validação de config ao carregar** (fail-fast se YAML inválido)
+- [ ] **S2-4: Lot sizing dinâmico por drawdown** (escala risco quando conta está em DD)
+- [ ] S2-6: Reason codes standardizados no validator (`FailureCode` enum)
+- [ ] S2-3: Confirmação multi-candle BOS/CHOCH (`confirm_closes: int`)
+- [ ] S2-1: Filtro de distância mínima de swings (`min_swing_pips`)
+
+---
+
+## 5b. Pendente / questões em aberto
 
 - [ ] **MT5 Credenciais (só tu):** instalar terminal MT5 + `pip install MetaTrader5` se necessário;
   preencher `account.yaml`: `MT5_ACCOUNT`, `MT5_PASSWORD`, `MT5_SERVER`; mudar `data_mode: "fixtures"` → `"mt5"`.
